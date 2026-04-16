@@ -36,7 +36,15 @@ Modular AI Agent Engine for Quality Assurance tasks, built with FastAPI and mode
 - Google API Key (for Gemini support)
 
 ### 2. Automatic Setup
-Simply run the provided installer. It will handle virtual environments (including the specialized Browser Agent `.venv`), dependencies, and database initialization:
+
+First, clone the repository and navigate into it:
+
+```bash
+git clone https://github.com/atid-college/q-ace-framework.git
+cd q-ace-framework
+```
+
+Then, simply run the provided installer. It will handle virtual environments (including the specialized Browser Agent `.venv`), dependencies, and database initialization:
 
 **Windows**:
 ```batch
@@ -50,7 +58,7 @@ chmod +x mac-install.sh
 ```
 
 ### 3. Run the Server
-Launch the framework after installation:
+For the next times, simply launch the framework using the run script:
 
 **Windows**:
 ```batch
