@@ -1,0 +1,91 @@
+<div class="max-w-4xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+    <!-- Tool Header -->
+    <div class="bg-white rounded-3xl p-8 border border-slate-200 shadow-sm relative overflow-hidden">
+        <div class="absolute top-0 right-0 p-6 opacity-5">
+            <i :data-lucide="availableTools.find(t => t.id === currentToolId)?.icon || 'box'" class="w-24 h-24"></i>
+        </div>
+        <div class="relative z-10 flex items-start space-x-6">
+            <div class="bg-indigo-600 text-white p-4 rounded-2xl shadow-xl shadow-indigo-100">
+                <i :data-lucide="availableTools.find(t => t.id === currentToolId)?.icon || 'box'" class="w-8 h-8"></i>
+            </div>
+            <div class="flex-grow">
+                <div class="flex items-center space-x-3 mb-2">
+                    <h2 class="text-3xl font-bold text-slate-800"
+                        x-text="availableTools.find(t => t.id === currentToolId)?.name"></h2>
+                    <span
+                        class="px-3 py-1 bg-amber-100 text-amber-700 text-[10px] font-bold uppercase tracking-wider rounded-full border border-amber-200">Placeholder</span>
+                </div>
+                <p class="text-slate-500 max-w-2xl text-lg"
+                    x-text="availableTools.find(t => t.id === currentToolId)?.ui.description"></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Placeholder View -->
+    <div class="grid grid-cols-1 gap-8">
+        <div class="bg-white rounded-3xl p-10 border border-slate-200 shadow-sm space-y-10">
+            <div class="flex items-center space-x-3 pb-6 border-b border-slate-100">
+                <div class="bg-indigo-50 p-2 rounded-xl">
+                    <i data-lucide="cpu" class="w-6 h-6 text-indigo-600"></i>
+                </div>
+                <h3 class="text-xl font-bold text-slate-800">Agent Interface</h3>
+            </div>
+
+            <div class="space-y-6">
+                <!-- Instruction Area -->
+                <div class="space-y-3">
+                    <label class="block text-[11px] font-bold text-slate-400 uppercase tracking-widest pl-1">Agent
+                        Instruction</label>
+                    <div class="relative group">
+                        <textarea x-model="toolData.prompt"
+                            class="w-full h-40 bg-slate-50 border border-slate-200 rounded-2xl px-6 py-5 text-slate-700 focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 focus:bg-white outline-none transition-all shadow-inner resize-none text-lg"
+                            :placeholder="availableTools.find(t => t.id === currentToolId)?.ui.components.find(c => c.id === 'prompt')?.placeholder">
+                        </textarea>
+                    </div>
+                </div>
+
+                <!-- Action Button -->
+                <div class="pt-4">
+                    <button @click="executePlaceholderAction()"
+                        class="group relative w-full bg-slate-200 text-slate-500 py-5 rounded-2xl font-bold text-lg shadow-lg transition-all flex items-center justify-center space-x-3 cursor-not-allowed">
+                        <i data-lucide="clock" class="w-5 h-5"></i>
+                        <span>Integration Coming Soon</span>
+                    </button>
+                    <p class="mt-4 text-center text-xs text-slate-400 font-medium">This tool is currently being
+                        developed and will be available in future updates.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Info Card -->
+        <div class="bg-indigo-900 rounded-3xl p-10 text-white shadow-2xl shadow-indigo-200 relative overflow-hidden">
+            <div class="absolute -right-20 -bottom-20 w-80 h-80 bg-indigo-800 rounded-full opacity-50 blur-3xl"></div>
+            <div class="relative z-10 space-y-6">
+                <div class="flex items-center space-x-3">
+                    <div class="bg-indigo-500/30 p-2 rounded-xl backdrop-blur-md">
+                        <i data-lucide="info" class="w-6 h-6"></i>
+                    </div>
+                    <h3 class="text-xl font-bold">Planned Capabilities</h3>
+                </div>
+                <ul class="grid grid-cols-1 md:grid-cols-2 gap-4 text-indigo-100/80 font-medium">
+                    <li class="flex items-center space-x-3 bg-white/5 p-4 rounded-xl border border-white/10">
+                        <i data-lucide="check-circle" class="w-4 h-4 text-indigo-400"></i>
+                        <span>Natural Language Execution</span>
+                    </li>
+                    <li class="flex items-center space-x-3 bg-white/5 p-4 rounded-xl border border-white/10">
+                        <i data-lucide="check-circle" class="w-4 h-4 text-indigo-400"></i>
+                        <span>AI Result Verification</span>
+                    </li>
+                    <li class="flex items-center space-x-3 bg-white/5 p-4 rounded-xl border border-white/10">
+                        <i data-lucide="check-circle" class="w-4 h-4 text-indigo-400"></i>
+                        <span>Step-by-step reasoning</span>
+                    </li>
+                    <li class="flex items-center space-x-3 bg-white/5 p-4 rounded-xl border border-white/10">
+                        <i data-lucide="check-circle" class="w-4 h-4 text-indigo-400"></i>
+                        <span>Auto-fixing suggestions</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>

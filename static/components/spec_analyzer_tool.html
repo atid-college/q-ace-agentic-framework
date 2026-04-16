@@ -1,0 +1,237 @@
+<div class="flex flex-col max-w-5xl mx-auto space-y-8 pb-32" x-data="specAnalyzerTool">
+
+    <!-- Tool Header Card -->
+    <div class="bg-white p-8 rounded-2xl shadow-sm border border-slate-100">
+        <div class="flex items-center justify-between mb-8">
+            <div class="flex items-center space-x-4">
+                <div class="bg-blue-100 text-blue-600 p-3 rounded-2xl shadow-inner">
+                    <i data-lucide="file-text" class="w-7 h-7"></i>
+                </div>
+                <div>
+                    <h3 class="text-2xl font-bold text-slate-800">Test Gen Agent</h3>
+                    <p class="text-slate-500 text-sm font-medium">Turn requirements into comprehensive test suites using
+                        AI.</p>
+                </div>
+            </div>
+            <!-- History Toggle Button -->
+            <button @click="showHistory = !showHistory"
+                class="flex items-center space-x-2 px-4 py-2 bg-slate-50 text-slate-600 rounded-xl text-xs font-bold border border-slate-200 hover:bg-slate-100 transition-all">
+                <i data-lucide="history" class="w-4 h-4"></i>
+                <span x-text="showHistory ? 'Hide History' : 'View Saved Docs'"></span>
+            </button>
+        </div>
+
+        <!-- History Panel -->
+        <div x-show="showHistory" x-transition
+            class="mb-8 p-6 bg-slate-50/50 rounded-2xl border border-slate-100 space-y-4">
+            <h4 class="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">Test Gen Agent</h4>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                <template x-for="test in savedTests" :key="test.filename">
+                    <div class="group relative">
+                        <div @click="viewSavedTest(test.filename)"
+                            class="p-3 bg-white border border-slate-200 rounded-xl hover:border-blue-400 hover:bg-blue-50/30 cursor-pointer transition-all flex items-center justify-between group-hover:pr-10">
+                            <div class="flex items-center space-x-3 truncate">
+                                <i data-lucide="file-text" class="w-4 h-4 text-slate-400 group-hover:text-blue-500"></i>
+                                <span class="text-xs font-medium text-slate-600 truncate" x-text="test.filename"></span>
+                            </div>
+                            <span class="text-[9px] text-slate-300 whitespace-nowrap"
+                                x-text="new Date(test.timestamp * 1000).toLocaleDateString()"></span>
+                        </div>
+                        <button @click.stop="deleteSavedTest(test.filename)"
+                            class="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all">
+                            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                        </button>
+                    </div>
+                </template>
+                <div x-show="savedTests.length === 0"
+                    class="col-span-full py-4 text-center text-slate-400 text-xs italic">
+                    No saved tests found.
+                </div>
+            </div>
+        </div>
+
+        <div class="space-y-8">
+            <!-- Input Source Section -->
+            <div
+                class="bg-slate-50/50 p-6 rounded-2xl border border-slate-100 grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
+                <div class="space-y-2">
+                    <label
+                        class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">Specification
+                        Source</label>
+                    <select x-model="selectedSpec"
+                        class="w-full border border-slate-200 bg-white rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all">
+                        <template x-for="opt in specOptions" :key="opt.value">
+                            <option :value="opt.value" x-text="opt.label"></option>
+                        </template>
+                    </select>
+                </div>
+
+                <div class="space-y-2">
+                    <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">Custom Path
+                        or URL</label>
+                    <div class="relative">
+                        <input type="text" x-model="customPath"
+                            class="w-full border border-slate-200 bg-white rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all pl-10"
+                            placeholder="e.g., C:/docs/spec.pdf or https://...">
+                        <div
+                            class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 text-xs">
+                            <i x-show="!customPath.startsWith('http')" data-lucide="file" class="w-4 h-4"></i>
+                            <i x-show="customPath.startsWith('http')" data-lucide="globe" class="w-4 h-4"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Configuration Section -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Category Dropdown -->
+                <div class="space-y-2">
+                    <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">Test
+                        Category</label>
+                    <select x-model="category"
+                        class="w-full border border-slate-200 bg-white rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all font-semibold text-slate-700">
+                        <option value="functionality">Functionality</option>
+                        <option value="security">Security</option>
+                        <option value="performance">Performance / Load</option>
+                        <option value="accessibility">Accessibility</option>
+                        <option value="usability">Usability</option>
+                        <option value="reliability">Reliability</option>
+                        <option value="all">All Categories</option>
+                    </select>
+                </div>
+
+                <!-- Testing Techniques (Multi-select via Custom Pill UI) -->
+                <div class="space-y-2">
+                    <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">Testing
+                        Techniques</label>
+                    <div class="flex flex-wrap gap-2 p-2 min-h-[46px] bg-white border border-slate-200 rounded-xl">
+                        <template x-for="tech in techniquesOptions" :key="tech.value">
+                            <button @click="toggleTechnique(tech.value)"
+                                :class="selectedTechniques.includes(tech.value) ? 'bg-blue-100 text-blue-700 border-blue-200' : 'bg-slate-50 text-slate-500 border-slate-100 hover:bg-slate-100'"
+                                class="px-3 py-1 rounded-full text-[10px] font-bold border transition-all">
+                                <span x-text="tech.label"></span>
+                            </button>
+                        </template>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Generate Button -->
+            <div class="pt-4">
+                <button @click="generateTests" :disabled="loading"
+                    class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-4 rounded-2xl font-bold hover:shadow-xl hover:shadow-blue-200 transition-all transform active:scale-[0.98] flex items-center justify-center space-x-3 disabled:opacity-50">
+                    <template x-if="!loading">
+                        <span class="flex items-center space-x-3">
+                            <i data-lucide="sparkles" class="w-5 h-5"></i>
+                            <span>Generate Test Cases</span>
+                        </span>
+                    </template>
+                    <template x-if="loading">
+                        <span class="flex items-center space-x-3">
+                            <svg class="animate-spin h-5 w-5 text-white" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor"
+                                    stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor"
+                                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                                </path>
+                            </svg>
+                            <span>Analyzing Spec & Generating Tests...</span>
+                        </span>
+                    </template>
+                </button>
+            </div>
+        </div>
+
+        <!-- Feedback Messages -->
+        <div x-show="error" x-transition
+            class="mt-6 p-4 bg-red-50 border border-red-100 text-red-700 rounded-xl text-sm flex items-start space-x-3">
+            <i data-lucide="alert-circle" class="w-5 h-5 mt-0.5 flex-shrink-0"></i>
+            <span x-text="error"></span>
+        </div>
+        <div x-show="successMsg" x-transition
+            class="mt-6 p-4 bg-emerald-50 border border-emerald-100 text-emerald-700 rounded-xl text-sm flex items-start space-x-3">
+            <i data-lucide="check-circle" class="w-5 h-5 mt-0.5 flex-shrink-0"></i>
+            <span x-text="successMsg"></span>
+        </div>
+    </div>
+
+    <!-- Results Area -->
+    <div x-show="testCases" x-transition class="space-y-8 animate-in fade-in slide-in-from-bottom-5 duration-500">
+        <div class="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
+            <div class="px-8 py-6 border-b border-slate-50 flex justify-between items-center bg-slate-50/30">
+                <div class="flex items-center space-x-3">
+                    <div class="bg-indigo-100 text-indigo-600 p-2 rounded-xl">
+                        <i data-lucide="clipboard-check" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <h4 class="font-bold text-slate-800">Generated Test Cases</h4>
+                        <p class="text-xs text-slate-400 font-medium capitalize" x-text="category + ' Category'"></p>
+                    </div>
+                </div>
+                <div class="flex space-x-3">
+                    <button @click="downloadTests"
+                        class="bg-white border border-slate-200 text-slate-600 px-4 py-2 rounded-xl text-xs font-bold hover:bg-slate-50 transition-all flex items-center space-x-2">
+                        <i data-lucide="download" class="w-4 h-4"></i>
+                        <span>Download .md</span>
+                    </button>
+                    <button @click="saveToApp" :disabled="saving"
+                        class="bg-indigo-600 text-white px-4 py-2 rounded-xl text-xs font-bold hover:bg-indigo-700 transition-all flex items-center space-x-2 disabled:opacity-50">
+                        <i data-lucide="save" class="w-4 h-4" x-show="!saving"></i>
+                        <svg x-show="saving" class="animate-spin h-3 w-3 text-white" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4">
+                            </circle>
+                            <path class="opacity-75" fill="currentColor"
+                                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                            </path>
+                        </svg>
+                        <span x-text="saving ? 'Saving...' : 'Save to App'"></span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Markdown Content Rendered -->
+            <div class="p-8 prose prose-slate max-w-none overflow-x-auto min-h-[400px]">
+                <div x-html="renderMarkdown(testCases)"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modern Delete Confirmation Modal -->
+    <div x-show="showDeleteConfirm" x-cloak
+        class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm"
+        x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 scale-95"
+        x-transition:enter-end="opacity-100 scale-100" x-transition:leave="transition ease-in duration-200"
+        x-transition:leave-start="opacity-100 scale-100" x-transition:leave-end="opacity-0 scale-95">
+
+        <div
+            class="bg-white rounded-3xl shadow-2xl max-w-md w-full p-8 border border-slate-100 animate-in zoom-in duration-300">
+            <div class="flex items-center space-x-4 mb-6">
+                <div class="p-3 bg-red-50 text-red-500 rounded-2xl">
+                    <i data-lucide="alert-triangle" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <h3 class="text-xl font-bold text-slate-800">Delete Test Suite?</h3>
+                    <p class="text-slate-500 text-sm">This action cannot be undone.</p>
+                </div>
+            </div>
+
+            <div class="p-4 bg-slate-50 rounded-2xl border border-slate-100 mb-8">
+                <div class="flex items-center space-x-3">
+                    <i data-lucide="file-text" class="w-4 h-4 text-slate-400"></i>
+                    <span class="text-xs font-mono text-slate-600 truncate" x-text="fileToDelete"></span>
+                </div>
+            </div>
+
+            <div class="flex space-x-3">
+                <button @click="showDeleteConfirm = false"
+                    class="flex-1 px-6 py-3.5 bg-slate-100 text-slate-600 rounded-2xl font-bold hover:bg-slate-200 transition-all">
+                    Cancel
+                </button>
+                <button @click="deleteSavedTest()"
+                    class="flex-1 px-6 py-3.5 bg-red-500 text-white rounded-2xl font-bold hover:bg-red-600 shadow-lg shadow-red-200 transition-all active:scale-[0.98]">
+                    Delete Forever
+                </button>
+            </div>
+        </div>
+    </div>
+</div>

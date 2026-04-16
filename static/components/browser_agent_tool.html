@@ -1,0 +1,1087 @@
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<div class="max-w-6xl mx-auto space-y-8 pb-32" x-data="browserAgentTool()" x-init="init()">
+    <!-- FLOATING TOAST NOTIFICATION -->
+    <div x-show="toast.show" 
+         x-transition:enter="transition ease-out duration-300"
+         x-transition:enter-start="opacity-0 translate-y-10"
+         x-transition:enter-end="opacity-100 translate-y-0"
+         x-transition:leave="transition ease-in duration-200"
+         x-transition:leave-start="opacity-100 translate-y-0"
+         x-transition:leave-end="opacity-0 translate-y-10"
+         class="fixed bottom-12 right-12 z-[110]"
+         style="display: none;">
+        <div :class="toast.type === 'success' ? 'bg-indigo-600 shadow-indigo-200' : 'bg-rose-600 shadow-rose-200'"
+             class="px-8 py-4 rounded-2xl text-white font-black text-sm shadow-2xl flex items-center space-x-4 border border-white/20 backdrop-blur-md">
+            <template x-if="toast.type === 'success'">
+                <i data-lucide="check-circle" class="w-5 h-5"></i>
+            </template>
+            <template x-if="toast.type === 'error'">
+                <i data-lucide="alert-circle" class="w-5 h-5"></i>
+            </template>
+            <span x-text="toast.message"></span>
+        </div>
+    </div>
+
+    <!-- MODERN CONFIRMATION MODAL -->
+    <div x-show="showConfirmModal" 
+         class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300"
+         style="display: none;"
+         @keydown.escape.window="showConfirmModal = false">
+        <div class="bg-white rounded-[2.5rem] w-full max-w-md shadow-2xl border border-white/20 transform animate-in zoom-in-95 slide-in-from-bottom-4 duration-300 overflow-hidden text-slate-800">
+            <div class="p-8 pb-0 flex items-center space-x-4">
+                <div class="bg-rose-50 p-3 rounded-2xl border border-rose-100">
+                    <i data-lucide="alert-triangle" class="w-6 h-6 text-rose-500"></i>
+                </div>
+                <h3 class="text-xl font-black tracking-tight" x-text="confirmTitle"></h3>
+            </div>
+            <div class="p-8">
+                <p class="text-slate-500 font-medium leading-relaxed" x-text="confirmMessage"></p>
+                <div class="flex items-center space-x-3 mt-10">
+                    <button @click="showConfirmModal = false" 
+                            class="flex-1 px-6 py-4 rounded-2xl border border-slate-200 text-sm font-black text-slate-700 hover:bg-slate-50 transition-all uppercase tracking-widest">
+                        Cancel
+                    </button>
+                    <button @click="executeConfirm()" 
+                            class="flex-1 px-6 py-4 rounded-2xl bg-rose-500 text-white text-sm font-black hover:bg-rose-600 transition-all shadow-lg shadow-rose-200 uppercase tracking-widest">
+                        Confirm
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <style>
+        .custom-scrollbar-violet::-webkit-scrollbar { width: 4px; height: 4px; }
+        .custom-scrollbar-violet::-webkit-scrollbar-track { background: #f8fafc; }
+        .custom-scrollbar-violet::-webkit-scrollbar-thumb { background: #8b5cf6; border-radius: 10px; }
+        .custom-scrollbar-violet::-webkit-scrollbar-thumb:hover { background: #7c3aed; }
+
+        /* Premium Docs Styling */
+        .docs-content {
+            font-family: 'Inter', system-ui, sans-serif;
+            color: #334155;
+            line-height: 1.75;
+        }
+        .docs-content table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            margin: 2rem 0;
+            border-radius: 1rem;
+            overflow: hidden;
+            border: 1px solid #f1f5f9;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05);
+        }
+        .docs-content th {
+            background: #f8fafc;
+            padding: 1rem 1.5rem;
+            text-align: left;
+            font-size: 0.75rem;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: #64748b;
+            border-bottom: 2px solid #f1f5f9;
+        }
+        .docs-content td {
+            padding: 1rem 1.5rem;
+            font-size: 0.875rem;
+            color: #475569;
+            border-bottom: 1px solid #f1f5f9;
+            vertical-align: top;
+        }
+        .docs-content tr:last-child td { border-bottom: none; }
+        .docs-content tr:hover td { background: #f8fafc; }
+        .docs-content h1 { font-size: 1.875rem; font-weight: 900; margin-bottom: 2rem; color: #0f172a; letter-spacing: -0.025em; }
+        .docs-content h2 { font-size: 1.5rem; font-weight: 800; margin-top: 3rem; margin-bottom: 1rem; color: #1e293b; }
+        .docs-content h3 { font-size: 1.125rem; font-weight: 700; margin-top: 2rem; margin-bottom: 0.75rem; color: #334155; }
+        .docs-content p { margin-bottom: 1.5rem; }
+        .docs-content code {
+            font-family: ui-monospace, monospace;
+            background: #f1f5f9;
+            color: #6366f1;
+            padding: 0.2rem 0.4rem;
+            border-radius: 0.5rem;
+            font-size: 0.85em;
+            font-weight: 600;
+        }
+        .docs-content pre {
+            background: #0f172a !important; /* Ultra dark slate */
+            color: #e2e8f0 !important;
+            padding: 1.5rem;
+            border-radius: 1.25rem;
+            overflow-x: auto;
+            margin: 1.5rem 0;
+            font-size: 0.875rem;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .docs-content pre code {
+            background: transparent !important;
+            color: inherit !important;
+            padding: 0 !important;
+            border-radius: 0 !important;
+            font-weight: 400 !important;
+            text-shadow: none !important;
+        }
+        .docs-content ul, .docs-content ol { margin-bottom: 1.5rem; padding-left: 1.5rem; }
+        .docs-content li { margin-bottom: 0.5rem; }
+        .docs-content strong { color: #0f172a; font-weight: 700; }
+    </style>
+    <!-- Tool Header & Tabs -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div class="flex items-center space-x-4">
+            <div class="bg-indigo-600 p-3.5 rounded-2xl shadow-xl shadow-indigo-100">
+                <i data-lucide="globe" class="w-7 h-7 text-white"></i>
+            </div>
+            <div>
+                <h2 class="text-2xl font-black text-slate-800 tracking-tight">Browser Agent</h2>
+                <div class="bg-indigo-50 text-indigo-600 text-[10px] font-bold px-2 py-0.5 rounded-md inline-block mt-1">
+                    Powered by browser-use
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab Navigation (Pill Style) -->
+        <div class="flex items-center bg-slate-100/80 p-1.5 rounded-2xl border border-slate-200 shadow-sm">
+            <button @click="switchTab('task')"
+                :class="activeTab === 'task' ? 'bg-white shadow-md text-indigo-600' : 'text-slate-500 hover:text-slate-700'"
+                class="px-5 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center space-x-2">
+                <i data-lucide="play-circle" class="w-4 h-4"></i>
+                <span>Task Execution</span>
+            </button>
+            <button @click="switchTab('results')"
+                :class="activeTab === 'results' ? 'bg-white shadow-md text-indigo-600' : 'text-slate-500 hover:text-slate-700'"
+                class="px-5 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center space-x-2">
+                <i data-lucide="line-chart" class="w-4 h-4"></i>
+                <span>Results</span>
+            </button>
+            <button @click="switchTab('config')"
+                :class="activeTab === 'config' ? 'bg-white shadow-md text-indigo-600' : 'text-slate-500 hover:text-slate-700'"
+                class="px-5 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center space-x-2">
+                <i data-lucide="settings-2" class="w-4 h-4"></i>
+                <span>Configuration</span>
+            </button>
+            <button @click="switchTab('docs'); fetchDocs()"
+                :class="activeTab === 'docs' ? 'bg-white shadow-md text-indigo-600' : 'text-slate-500 hover:text-slate-700'"
+                class="px-5 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center space-x-2">
+                <i data-lucide="book-open" class="w-4 h-4"></i>
+                <span>Docs</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- MAIN CONTENT AREA -->
+    <div class="space-y-8">
+        <!-- TASK EXECUTION TAB -->
+        <div x-show="activeTab === 'task'" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 translate-y-4">
+            <!-- Central Command Card -->
+            <div class="bg-white rounded-[2.5rem] p-10 shadow-sm border border-slate-200 space-y-8">
+                <!-- Task Input Area -->
+                <div class="relative group">
+                    <textarea x-model="task" rows="4"
+                        class="w-full bg-white border-2 border-slate-100 rounded-3xl p-8 text-base font-medium focus:ring-8 focus:ring-indigo-500/5 focus:border-indigo-500 outline-none transition-all placeholder-slate-400 group-hover:border-slate-200 resize-none shadow-inner"
+                        placeholder="1. Navigate to: https://google.com&#10;2. Search for 'Q-Ace Agentic Framework'&#10;3. Tell me the first result title..."></textarea>
+                    
+                    <div class="absolute bottom-6 right-6 flex items-center space-x-3">
+                        <button @click="task = ''" x-show="task.length > 0" class="p-2 text-slate-300 hover:text-rose-500 transition-colors" title="Reset Task">
+                            <i data-lucide="rotate-ccw" class="w-5 h-5"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Action Controls -->
+                <div class="flex items-center space-x-8">
+                    <button @click="startAgent()" :disabled="status === 'running' || !task.trim()"
+                        class="px-12 py-5 bg-gradient-to-r from-indigo-600 to-violet-700 text-white rounded-[1.5rem] font-black text-base hover:from-indigo-700 hover:to-violet-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-2xl shadow-indigo-200 flex items-center space-x-4 group">
+                        <template x-if="status !== 'running'">
+                            <span class="flex items-center space-x-4">
+                                <i data-lucide="play" class="w-6 h-6 fill-current group-hover:scale-110 transition-transform"></i>
+                                <span>Execute Agent Task</span>
+                            </span>
+                        </template>
+                        <template x-if="status === 'running'">
+                            <span class="flex items-center space-x-4">
+                                <svg class="animate-spin h-6 w-6 text-white" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                <span>Processing...</span>
+                            </span>
+                        </template>
+                    </button>
+                    <button x-show="status === 'running'" @click="stopAgent()"
+                        class="px-8 py-5 bg-rose-50 text-rose-600 rounded-[1.5rem] hover:bg-rose-100 transition-all border border-rose-100 font-black text-xs uppercase tracking-widest flex items-center space-x-3">
+                        <i data-lucide="square" class="w-4 h-4 fill-current"></i>
+                        <span>Stop Execution</span>
+                    </button>
+                    <button @click="clearLogs()" :disabled="status === 'running' || (logs.length === 0 && !finalResult)"
+                        class="text-slate-400 hover:text-slate-800 font-bold transition-colors text-base disabled:opacity-20 translate-y-0.5">
+                        Clear Results
+                    </button>
+                </div>
+            </div>
+
+            <!-- BATCH SUITE RUNNER SECTION -->
+            <div class="mt-12 space-y-6">
+                <div class="flex items-center justify-between px-2">
+                    <div class="flex items-center space-x-3 text-slate-400">
+                        <i data-lucide="layers" class="w-4 h-4"></i>
+                        <h3 class="text-[10px] font-black uppercase tracking-[0.2em]">Batch Suite Runner</h3>
+                    </div>
+                    <button @click="document.getElementById('browser-suite-file-input').click()"
+                        class="px-6 py-3 bg-white border border-slate-200 rounded-2xl text-xs font-black text-slate-700 hover:border-indigo-400 hover:bg-slate-50 transition-all flex items-center space-x-3 shadow-sm shadow-slate-100 group">
+                        <i data-lucide="upload-cloud" class="w-4 h-4 text-indigo-500 group-hover:scale-110 transition-transform"></i>
+                        <span>Load Suite File</span>
+                        <span class="text-[9px] text-slate-400 font-medium ml-2">(JSON, YAML, CSV, TXT)</span>
+                    </button>
+                    <input type="file" id="browser-suite-file-input" class="hidden" @change="loadSuiteFile($event)" accept=".json,.yaml,.yml,.csv,.txt">
+                </div>
+
+                <!-- Suite Active State -->
+                <div x-show="suiteFile" class="bg-indigo-50/50 border border-indigo-100 rounded-[2rem] p-8 animate-in fade-in zoom-in-95 duration-500">
+                    <div class="flex items-center justify-between mb-6">
+                        <div class="flex items-center space-x-4">
+                            <div class="bg-white p-3 rounded-2xl shadow-sm border border-indigo-100">
+                                <i data-lucide="list-checks" class="w-6 h-6 text-indigo-600"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-indigo-900" x-text="suiteName"></h4>
+                                <span class="text-xs text-indigo-500" x-text="suiteTasks.length + ' tasks queued'"></span>
+                            </div>
+                        </div>
+                        <div class="flex items-center space-x-3">
+                            <button @click="runSuiteSequential()" :disabled="status === 'running'"
+                                class="px-6 py-3 bg-indigo-600 text-white rounded-xl text-xs font-black hover:bg-indigo-700 transition-all disabled:opacity-50 shadow-lg shadow-indigo-100 flex items-center space-x-2">
+                                <i data-lucide="play-circle" class="w-4 h-4"></i>
+                                <span>Run Sequential Suite</span>
+                            </button>
+                            <button @click="clearSuite()" class="p-3 text-indigo-300 hover:text-rose-500 transition-colors">
+                                <i data-lucide="trash-2" class="w-5 h-5"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <!-- Task List -->
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                        <template x-for="(t, idx) in suiteTasks" :key="idx">
+                            <div @click="task = t"
+                                class="p-6 rounded-[2rem] border transition-all cursor-pointer flex flex-col space-y-3 relative group overflow-hidden"
+                                :class="task === t ? 'bg-white border-indigo-400 shadow-xl ring-2 ring-indigo-500/5' : 'bg-white/50 border-indigo-100 hover:border-indigo-300 hover:bg-white'">
+                                
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center space-x-3">
+                                        <div class="w-8 h-8 rounded-full bg-indigo-50 flex items-center justify-center text-[10px] font-black text-indigo-500 border border-indigo-100 group-hover:bg-indigo-600 group-hover:text-white transition-colors" x-text="String(idx + 1).padStart(2, '0')"></div>
+                                        <h5 class="text-sm font-black text-slate-800 tracking-tight" x-text="suiteTaskNames[idx] || ('Test Case ' + (idx + 1))"></h5>
+                                    </div>
+                                    <template x-if="task === t">
+                                        <div class="px-3 py-1 bg-indigo-500 text-white text-[8px] font-black uppercase rounded-full animate-in fade-in zoom-in-75">Selected</div>
+                                    </template>
+                                </div>
+
+                                <div class="bg-slate-50/50 rounded-2xl p-4 border border-slate-100/50 text-[11px] font-medium text-slate-500 leading-relaxed font-mono overflow-hidden whitespace-pre-wrap max-h-32 group-hover:text-slate-700 transition-colors" 
+                                     x-text="t">
+                                </div>
+                                
+                                <div class="absolute top-0 right-0 w-24 h-24 bg-indigo-500/5 rounded-full -mr-12 -mt-12 group-hover:scale-125 transition-transform duration-700 pointer-events-none"></div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+            </div>
+
+            <!-- RESULT AREA (Consolidated) -->
+            <div x-show="logs.length > 0 || finalResult" class="mt-12 space-y-1 rounded-[2.5rem] overflow-hidden shadow-2xl shadow-slate-200 border border-slate-200 bg-slate-900">
+                <!-- FINAL EXTRACTED RESULT BANNER -->
+                <div x-show="finalResult" x-transition 
+                     :class="(resultStatus === 'failed' || isQuotaError) ? 'bg-rose-600' : 'bg-emerald-600'"
+                     class="p-10 relative group transition-all duration-500">
+                    <div class="flex justify-between items-start mb-6">
+                        <div class="flex items-center space-x-4">
+                            <div class="bg-white/20 p-2.5 rounded-xl backdrop-blur-md border border-white/20">
+                                <template x-if="resultStatus === 'success' && !isQuotaError">
+                                    <i data-lucide="check-circle-2" class="w-6 h-6 text-white"></i>
+                                </template>
+                                <template x-if="resultStatus === 'failed' || isQuotaError">
+                                    <i data-lucide="alert-circle" class="w-6 h-6 text-white"></i>
+                                </template>
+                            </div>
+                            <h4 class="text-[10px] font-black text-white uppercase tracking-[0.3em]" 
+                                x-text="isQuotaError ? 'Quota Exceeded / API Error' : (resultStatus === 'failed' ? 'Task Failed' : 'Final Extracted Result')"></h4>
+                        </div>
+                        <button @click="finalResult = ''; isQuotaError = false" class="p-2 text-white/50 hover:text-white transition-colors bg-white/10 rounded-xl hover:bg-white/20">
+                            <i data-lucide="x" class="w-5 h-5"></i>
+                        </button>
+                    </div>
+                    
+                    <div class="px-2">
+                        <!-- Main Message (Always Visible) -->
+                        <div class="text-lg font-medium text-white leading-relaxed whitespace-pre-wrap mb-4 pl-2" 
+                             x-text="finalResult.includes('\n\nDetails:') ? finalResult.split('\n\nDetails:')[0] : finalResult"></div>
+
+                        <!-- Accordion for Details (Conditional) -->
+                        <template x-if="finalResult.includes('\n\nDetails:')">
+                            <div class="space-y-4 pb-2">
+                                <button @click="showResultDetail = !showResultDetail" 
+                                        class="flex items-center space-x-3 text-white/70 hover:text-white transition-all bg-white/5 hover:bg-white/10 px-4 py-2.5 rounded-xl border border-white/10 group/toggle shadow-sm">
+                                    <i :data-lucide="showResultDetail ? 'chevron-up' : 'chevron-down'" class="w-4 h-4 transition-transform duration-300"></i>
+                                    <span class="text-[10px] font-black uppercase tracking-widest" x-text="showResultDetail ? 'Hide Technical Details' : 'Show Technical Details'"></span>
+                                </button>
+                                
+                                <div x-show="showResultDetail" 
+                                     x-transition:enter="transition ease-out duration-300"
+                                     x-transition:enter-start="opacity-0 translate-y-2"
+                                     x-transition:enter-end="opacity-100 translate-y-0"
+                                     class="bg-white/5 border border-white/10 rounded-2xl p-6 font-mono text-[12px] text-white/80 whitespace-pre-wrap overflow-x-auto custom-scrollbar-violet shadow-inner animate-in fade-in slide-in-from-top-2 duration-300">
+                                    <span x-text="'Details: ' + finalResult.split('\n\nDetails:')[1]"></span>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+
+                <!-- LIVE CONSOLE HEADER WITH COPY -->
+                <div class="px-8 pt-8 flex items-center justify-between">
+                    <div class="flex items-center space-x-3 text-slate-400">
+                        <i data-lucide="terminal" class="w-4 h-4"></i>
+                        <h3 class="text-[10px] font-black uppercase tracking-[0.2em]">Live Run Console</h3>
+                    </div>
+                    <button @click="copyConsoleOutput()" 
+                            class="flex items-center space-x-2 text-slate-500 hover:text-indigo-400 transition-colors py-1 px-3 rounded-lg hover:bg-slate-800 border border-transparent hover:border-slate-700">
+                        <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+                        <span class="text-[10px] font-black uppercase tracking-wider">Copy Output</span>
+                    </button>
+                </div>
+
+                <!-- LIVE CONSOLE -->
+                <div class="p-4 bg-slate-900">
+                    <div id="browser-agent-console-body" class="h-[400px] overflow-y-auto p-8 font-mono text-[13px] leading-relaxed custom-scrollbar selection:bg-indigo-500/30">
+                        <template x-for="(log, idx) in logs" :key="idx">
+                            <div class="mb-3 flex items-start space-x-4 animate-in slide-in-from-left-2 duration-300">
+                                <span class="text-slate-700 select-none shrink-0 font-bold w-8 text-right" x-text="String(idx + 1).padStart(3, '0')"></span>
+                                <div class="flex-grow min-w-0" :class="{
+                                    'text-indigo-400 font-bold': log.text.includes('🚀') || log.text.includes('Initializing'),
+                                    'text-emerald-400': log.type === 'done' || log.text.includes('✅'),
+                                    'text-rose-400': log.type === 'error' || log.text.includes('❌'),
+                                    'text-slate-400': log.type === 'step' && !log.text.includes('🚀') && !log.text.includes('✅') && !log.text.includes('❌')
+                                }">
+                                    <span x-text="log.text"></span>
+                                </div>
+                            </div>
+                        </template>
+                        <div x-show="status === 'running'" class="flex items-center space-x-2 text-indigo-500 py-2 pl-12 opacity-50">
+                            <span class="animate-bounce font-black text-xl">.</span>
+                            <span class="animate-bounce [animation-delay:0.2s] font-black text-xl">.</span>
+                            <span class="animate-bounce [animation-delay:0.4s] font-black text-xl">.</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- RESULTS TAB -->
+        <div x-show="activeTab === 'results'" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 translate-y-4">
+            <!-- Dashboard Highlights -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <div class="bg-indigo-600 rounded-[2rem] p-8 text-white shadow-xl shadow-indigo-100 flex items-center justify-between overflow-hidden relative group">
+                    <div class="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 group-hover:scale-110 transition-transform"></div>
+                    <div>
+                        <div class="text-[10px] font-black uppercase tracking-widest opacity-60 mb-2">Total Executions</div>
+                        <div class="text-4xl font-black" x-text="getStats().total">0</div>
+                    </div>
+                    <i data-lucide="play-circle" class="w-12 h-12 opacity-20"></i>
+                </div>
+                <div class="bg-emerald-500 rounded-[2rem] p-8 text-white shadow-xl shadow-emerald-100 flex items-center justify-between overflow-hidden relative group">
+                    <div class="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 group-hover:scale-110 transition-transform"></div>
+                    <div>
+                        <div class="text-[10px] font-black uppercase tracking-widest opacity-60 mb-2">Success Rate</div>
+                        <div class="text-4xl font-black" x-text="getStats().total ? Math.round((getStats().success / getStats().total) * 100) + '%' : '0%'">0%</div>
+                    </div>
+                    <i data-lucide="check-circle-2" class="w-12 h-12 opacity-20"></i>
+                </div>
+                <div class="bg-white rounded-[2rem] p-8 border border-slate-200 shadow-sm flex items-center justify-between overflow-hidden relative group">
+                    <div>
+                        <div class="text-[10px] font-black text-rose-500 uppercase tracking-widest mb-2">Failed Runs</div>
+                        <div class="text-4xl font-black text-slate-800" x-text="getStats().failed">0</div>
+                    </div>
+                    <i data-lucide="alert-circle" class="w-12 h-12 text-rose-100"></i>
+                </div>
+            </div>
+
+            <!-- Run History Graph -->
+            <div class="bg-white rounded-[2.5rem] border border-slate-200 p-8 shadow-sm mb-12 relative overflow-hidden">
+                <div class="flex items-center justify-between mb-8">
+                    <div class="flex items-center space-x-4">
+                        <div class="bg-violet-50 p-3 rounded-2xl border border-violet-100">
+                            <i data-lucide="line-chart" class="w-6 h-6 text-violet-600"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-bold text-slate-800">Performance Timeline</h3>
+                            <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Outcome of the last 15 browser agent executions</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="h-[250px] w-full relative">
+                    <canvas id="runsChart"></canvas>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
+                <!-- History List -->
+                <div class="lg:col-span-1 bg-white rounded-3xl p-6 border border-slate-200 space-y-4 shadow-sm">
+                    <h3 class="text-sm font-bold text-slate-800 px-2 flex justify-between items-center">
+                        <span>Run History</span>
+                        <button @click="clearHistory()" class="text-[10px] font-bold text-rose-500 uppercase tracking-widest hover:underline">Clear</button>
+                    </h3>
+                    <div class="space-y-2 max-h-[600px] overflow-y-auto pr-2 custom-scrollbar">
+                        <template x-for="item in promptHistory" :key="item.id">
+                            <div class="relative group">
+                                <button @click="selectHistoryItem(item)"
+                                    :class="selectedHistoryId === item.id ? 'border-indigo-500 bg-indigo-50 text-indigo-700 ring-2 ring-indigo-500/10' : 'border-slate-100 hover:border-slate-200 text-slate-600'"
+                                    class="w-full text-left p-4 rounded-2xl border transition-all pr-12">
+                                    <div class="flex items-center justify-between">
+                                        <div class="font-bold text-xs truncate" x-text="item.prompt"></div>
+                                        <span :class="(item.status === 'failed') ? 'bg-rose-100 text-rose-700' : 'bg-emerald-100 text-emerald-700'"
+                                              class="text-[8px] font-black uppercase px-2 py-0.5 rounded-full"
+                                              x-text="item.status || 'success'"></span>
+
+                                    </div>
+                                    <div class="text-[10px] opacity-50 mt-1" x-text="new Date(item.timestamp).toLocaleString()"></div>
+                                </button>
+                                <button @click.stop="removeHistoryItem(item.id)"
+                                        class="absolute right-4 top-1/2 -translate-y-1/2 p-2 text-slate-300 hover:text-rose-500 transition-colors opacity-0 group-hover:opacity-100">
+                                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                </button>
+                            </div>
+                        </template>
+                        <template x-if="promptHistory.length === 0">
+                            <div class="text-center py-20 opacity-30 italic text-sm">No history yet</div>
+                        </template>
+                    </div>
+                </div>
+                <!-- Detail View -->
+                <div class="lg:col-span-3 space-y-6">
+                    <template x-if="selectedHistoryId">
+                         <div class="animate-in fade-in slide-in-from-right-4 duration-500 space-y-6">
+                            <!-- METRICS GRID -->
+                            <template x-if="metrics">
+                                <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                                    <div class="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
+                                        <div class="flex items-center space-x-3 mb-3 text-slate-400">
+                                            <i data-lucide="layers" class="w-4 h-4"></i>
+                                            <span class="text-[10px] font-black uppercase tracking-wider">Steps</span>
+                                        </div>
+                                        <div class="text-2xl font-black text-slate-800" x-text="metrics.number_of_steps"></div>
+                                    </div>
+                                    <div class="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
+                                        <div class="flex items-center space-x-3 mb-3 text-slate-400">
+                                            <i data-lucide="clock" class="w-4 h-4"></i>
+                                            <span class="text-[10px] font-black uppercase tracking-wider">Duration</span>
+                                        </div>
+                                        <div class="text-2xl font-black text-slate-800" x-text="Math.round(metrics.total_duration_seconds) + 's'"></div>
+                                    </div>
+                                    <div class="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
+                                        <div class="flex items-center space-x-3 mb-3 text-slate-400">
+                                            <i data-lucide="shield-check" class="w-4 h-4"></i>
+                                            <span class="text-[10px] font-black uppercase tracking-wider">Status</span>
+                                        </div>
+                                        <div :class="metrics.is_successful ? 'text-indigo-600' : 'text-rose-600'" 
+                                             class="text-sm font-black uppercase tracking-tighter" 
+                                             x-text="metrics.is_successful ? 'Success' : 'Failed'"></div>
+                                    </div>
+                                    <div class="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
+                                        <div class="flex items-center space-x-3 mb-3 text-slate-400">
+                                            <i data-lucide="alert-circle" class="w-4 h-4"></i>
+                                            <span class="text-[10px] font-black uppercase tracking-wider">Errors</span>
+                                        </div>
+                                        <div :class="metrics.has_errors ? 'text-rose-600' : 'text-slate-400'" 
+                                             class="text-sm font-black uppercase tracking-tighter"
+                                             x-text="metrics.has_errors ? 'Detected' : 'None'"></div>
+                                    </div>
+                                </div>
+                            </template>
+
+                            <div class="bg-indigo-600 rounded-3xl p-8 text-white shadow-xl shadow-indigo-100 relative overflow-hidden">
+                                <div class="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -mr-32 -mt-32"></div>
+                                <div class="relative">
+                                    <span class="text-[10px] font-black uppercase tracking-widest opacity-60">Task Prompt</span>
+                                    <h4 class="text-xl font-bold mt-2" x-text="task"></h4>
+                                </div>
+                            </div>
+                            <!-- Result Details -->
+                            <div class="bg-white rounded-3xl p-8 border border-slate-200 shadow-sm space-y-8">
+                                <div class="space-y-4">
+                                    <div class="mb-2">
+                                        <h5 class="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-4">Execution Outcome</h5>
+                                        <div :class="isQuotaError ? 'text-rose-700' : 'text-slate-700'"
+                                             class="text-sm font-bold leading-relaxed whitespace-pre-wrap" 
+                                             x-text="finalResult.includes('\n\nDetails:') ? finalResult.split('\n\nDetails:')[0] : finalResult"></div>
+                                    </div>
+
+                                    <template x-if="finalResult.includes('\n\nDetails:')">
+                                        <div class="space-y-4">
+                                            <button @click="showResultDetail = !showResultDetail" 
+                                                    class="flex items-center space-x-3 text-indigo-600 hover:text-indigo-700 transition-all bg-indigo-50 hover:bg-indigo-100 px-4 py-2.5 rounded-xl border border-indigo-100 group/toggle">
+                                                <i :data-lucide="showResultDetail ? 'chevron-up' : 'chevron-down'" class="w-4 h-4 transition-transform duration-300"></i>
+                                                <span class="text-[10px] font-black uppercase tracking-widest" x-text="showResultDetail ? 'Hide Technical Details' : 'Show Technical Details'"></span>
+                                            </button>
+                                            
+                                            <div x-show="showResultDetail" 
+                                                 x-transition:enter="transition ease-out duration-300"
+                                                 x-transition:enter-start="opacity-0 translate-y-2"
+                                                 x-transition:enter-end="opacity-100 translate-y-0"
+                                                 class="bg-slate-900 rounded-2xl p-6 font-mono text-[12px] text-slate-300 whitespace-pre-wrap overflow-x-auto custom-scrollbar border border-slate-800 shadow-inner">
+                                                <span x-text="'Details: ' + finalResult.split('\n\nDetails:')[1]"></span>
+                                            </div>
+                                        </div>
+                                    </template>
+                                </div>
+
+                                <!-- CONSOLE LOGS HISTORY -->
+                                <div x-show="logs.length > 0" class="pt-8 border-t border-slate-100">
+                                    <div class="flex items-center justify-between mb-6">
+                                        <h5 class="text-[10px] font-black uppercase tracking-widest text-slate-400">Run Console Logs</h5>
+                                        <button @click="copyConsoleOutput()" class="text-indigo-600 hover:text-indigo-700 font-bold text-[10px] uppercase tracking-wider flex items-center space-x-2">
+                                            <i data-lucide="copy" class="w-3 h-3"></i>
+                                            <span>Copy Logs</span>
+                                        </button>
+                                    </div>
+                                    <div class="bg-slate-900 rounded-2xl p-6 font-mono text-[11px] leading-relaxed overflow-y-auto max-h-[300px] custom-scrollbar border border-slate-800 shadow-inner">
+                                        <template x-for="(log, idx) in logs">
+                                            <div class="py-1 border-b border-white/5 last:border-0 hover:bg-white/5 transition-colors">
+                                                <span class="text-slate-600 w-8 inline-block select-none" x-text="String(idx+1).padStart(3,'0')"></span>
+                                                <span :class="{
+                                                    'text-indigo-400': log.type === 'step',
+                                                    'text-rose-400': log.type === 'error',
+                                                    'text-emerald-400': log.type === 'done',
+                                                    'text-slate-400': !log.type
+                                                }" x-text="log.text"></span>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </div>
+
+                                <!-- VISITED URLS -->
+                                <template x-if="metrics && metrics.urls && metrics.urls.length > 0">
+                                    <div class="pt-8 border-t border-slate-100">
+                                        <h5 class="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-6 flex items-center space-x-2">
+                                            <i data-lucide="link" class="w-3 h-3"></i>
+                                            <span>Visited URLs</span>
+                                        </h5>
+                                        <div class="space-y-3">
+                                            <template x-for="url in metrics.urls">
+                                                <div class="flex items-center space-x-3 p-4 bg-slate-50 rounded-2xl border border-slate-100 group">
+                                                    <i data-lucide="globe" class="w-4 h-4 text-indigo-400"></i>
+                                                    <a :href="url" target="_blank" class="text-xs font-bold text-slate-600 truncate hover:text-indigo-600 transition-colors" x-text="url"></a>
+                                                    <i data-lucide="external-link" class="w-3 h-3 text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity"></i>
+                                                </div>
+                                            </template>
+                                        </div>
+                                    </div>
+                                </template>
+
+                                <!-- ACTION SEQUENCE -->
+                                <template x-if="metrics && metrics.action_names && metrics.action_names.length > 0">
+                                    <div class="pt-8 border-t border-slate-100">
+                                        <h5 class="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-6 flex items-center space-x-2">
+                                            <i data-lucide="activity" class="w-3 h-3"></i>
+                                            <span>Action Sequence</span>
+                                        </h5>
+                                        <div class="flex flex-wrap gap-3">
+                                            <template x-for="(action, idx) in metrics.action_names">
+                                                <div class="flex items-center space-x-2 px-4 py-2 bg-indigo-50 text-indigo-700 rounded-full border border-indigo-100 text-[10px] font-black uppercase tracking-tighter">
+                                                    <span class="opacity-40" x-text="idx + 1"></span>
+                                                    <span x-text="action"></span>
+                                                </div>
+                                            </template>
+                                        </div>
+                                    </div>
+                                </template>
+
+                                <!-- EXTRACTED CONTENT -->
+                                <template x-if="metrics && metrics.extracted_content && metrics.extracted_content.length > 0">
+                                    <div class="pt-8 border-t border-slate-100">
+                                        <h5 class="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-6 flex items-center space-x-2">
+                                            <i data-lucide="file-text" class="w-3 h-3"></i>
+                                            <span>Extracted Content</span>
+                                        </h5>
+                                        <div class="space-y-4">
+                                            <template x-for="content in metrics.extracted_content">
+                                                <div class="p-6 bg-slate-50 rounded-2xl border border-slate-100 text-xs text-slate-600 font-medium leading-relaxed italic" x-text="content"></div>
+                                            </template>
+                                        </div>
+                                    </div>
+                                </template>
+                            </div>
+                         </div>
+                    </template>
+                    <template x-if="!selectedHistoryId">
+                        <div class="h-full flex flex-col items-center justify-center space-y-4 opacity-20 py-32">
+                            <i data-lucide="mouse-pointer-2" class="w-16 h-16"></i>
+                            <p class="font-bold">Select a previous run to view details</p>
+                        </div>
+                    </template>
+                </div>
+            </div>
+        </div>
+
+        <!-- CONFIGURATION TAB -->
+        <div x-show="activeTab === 'config'" class="w-full">
+            <div class="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm overflow-hidden flex flex-col md:flex-row min-h-[600px]">
+                <!-- Sub-tab Sidebar -->
+                <div class="w-full md:w-64 bg-slate-50 border-r border-slate-200 p-6 space-y-2 shrink-0">
+                    <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-6 px-2">Settings Category</h3>
+                    <button @click="configTab = 'agent'"
+                        :class="configTab === 'agent' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-100' : 'text-slate-600 hover:bg-slate-100'"
+                        class="w-full text-left px-5 py-3.5 rounded-2xl text-sm font-bold transition-all flex items-center space-x-3">
+                        <i data-lucide="bot" class="w-5 h-5"></i>
+                        <span>Agent Behavior</span>
+                    </button>
+                    <button @click="configTab = 'browser'"
+                        :class="configTab === 'browser' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-100' : 'text-slate-600 hover:bg-slate-100'"
+                        class="w-full text-left px-5 py-3.5 rounded-2xl text-sm font-bold transition-all flex items-center space-x-3">
+                        <i data-lucide="layout" class="w-5 h-5"></i>
+                        <span>Browser Settings</span>
+                    </button>
+                </div>
+
+                <!-- Settings Content -->
+                <div class="flex-grow p-10 overflow-y-auto custom-scrollbar-violet">
+                    <!-- Agent Settings -->
+                    <div x-show="configTab === 'agent'" class="space-y-12 animate-in fade-in slide-in-from-right-4 duration-500 pb-20">
+                        <div>
+                            <h4 class="text-xl font-black text-slate-800 mb-2">Agent Behavior Matrix</h4>
+                            <p class="text-sm text-slate-500">Tune how the AI reasons and interacts with pages.</p>
+                        </div>
+
+                        <!-- Core Controls -->
+                        <div class="space-y-6">
+                            <div class="flex items-center space-x-3 text-indigo-600">
+                                <i data-lucide="cpu" class="w-4 h-4"></i>
+                                <h5 class="text-[10px] font-black uppercase tracking-[0.2em]">Core Execution</h5>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 bg-slate-50 p-8 rounded-[2rem] border border-slate-100">
+                                <div class="space-y-3">
+                                    <div class="flex items-center">
+                                        <label class="text-xs font-black text-slate-400 uppercase tracking-wider px-1">Vision Mode</label>
+                                        <button @click="showHelp('use_vision', 'Vision Mode')" class="text-slate-300 hover:text-indigo-500 transition-colors ml-1 focus:outline-none">
+                                            <i data-lucide="help-circle" class="w-3.5 h-3.5"></i>
+                                        </button>
+                                    </div>
+                                    <select x-model="agentConfig.use_vision" class="w-full bg-white border border-slate-200 rounded-2xl px-5 py-3.5 text-sm font-bold text-slate-700 outline-none focus:border-indigo-500 transition-all cursor-pointer">
+                                        <option value="auto">Auto (Smart Selective)</option>
+                                        <option value="true">Always On (Vision Only)</option>
+                                        <option value="false">Off (Text Only)</option>
+                                    </select>
+                                </div>
+                                <div class="space-y-3">
+                                    <div class="flex items-center">
+                                        <label class="text-xs font-black text-slate-400 uppercase tracking-wider px-1">Actions per Step</label>
+                                        <button @click="showHelp('max_actions_per_step', 'Actions per Step')" class="text-slate-300 hover:text-indigo-500 transition-colors ml-1 focus:outline-none">
+                                            <i data-lucide="help-circle" class="w-3.5 h-3.5"></i>
+                                        </button>
+                                    </div>
+                                    <input type="number" x-model.number="agentConfig.max_actions_per_step" class="w-full bg-white border border-slate-200 rounded-2xl px-5 py-3.5 text-sm font-bold text-slate-700 outline-none focus:border-indigo-500">
+                                </div>
+                                <div class="space-y-3">
+                                    <div class="flex items-center">
+                                        <label class="text-xs font-black text-slate-400 uppercase tracking-wider px-1">Max Step Retries</label>
+                                        <button @click="showHelp('max_failures', 'Max Step Retries')" class="text-slate-300 hover:text-indigo-500 transition-colors ml-1 focus:outline-none">
+                                            <i data-lucide="help-circle" class="w-3.5 h-3.5"></i>
+                                        </button>
+                                    </div>
+                                    <input type="number" x-model.number="agentConfig.max_failures" class="w-full bg-white border border-slate-200 rounded-2xl px-5 py-3.5 text-sm font-bold text-slate-700 outline-none focus:border-indigo-500">
+                                </div>
+                                <div class="space-y-3">
+                                    <div class="flex items-center">
+                                        <label class="text-xs font-black text-slate-400 uppercase tracking-wider px-1">Directly Open URL</label>
+                                        <button @click="showHelp('directly_open_url', 'Directly Open URL')" class="text-slate-300 hover:text-indigo-500 transition-colors ml-1 focus:outline-none">
+                                            <i data-lucide="help-circle" class="w-3.5 h-3.5"></i>
+                                        </button>
+                                    </div>
+                                    <div class="flex items-center h-[52px]">
+                                        <button @click="agentConfig.directly_open_url = !agentConfig.directly_open_url" :class="agentConfig.directly_open_url ? 'bg-indigo-600' : 'bg-slate-300'" class="w-14 h-8 rounded-full transition-all relative p-1">
+                                            <div :class="agentConfig.directly_open_url ? 'translate-x-6' : 'translate-x-0'" class="w-6 h-6 bg-white rounded-full transition-transform"></div>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Performance & Limits -->
+                        <div class="space-y-6">
+                            <div class="flex items-center space-x-3 text-indigo-600">
+                                <i data-lucide="gauge" class="w-4 h-4"></i>
+                                <h5 class="text-[10px] font-black uppercase tracking-[0.2em]">Performance & Limits</h5>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                <div class="bg-slate-50 p-6 rounded-2xl border border-slate-100 flex flex-col justify-between">
+                                    <div class="flex items-center mb-3">
+                                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest">LLM Timeout (s)</label>
+                                        <button @click="showHelp('llm_timeout', 'LLM Timeout')" class="text-slate-300 hover:text-indigo-500 transition-colors ml-1 focus:outline-none">
+                                            <i data-lucide="help-circle" class="w-3 h-3"></i>
+                                        </button>
+                                    </div>
+                                    <input type="number" x-model.number="agentConfig.llm_timeout" class="bg-white border border-slate-200 rounded-xl px-4 py-2 text-xs font-bold text-slate-700">
+                                </div>
+                                <div class="bg-slate-50 p-6 rounded-2xl border border-slate-100 flex flex-col justify-between">
+                                    <div class="flex items-center mb-3">
+                                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Step Timeout (s)</label>
+                                        <button @click="showHelp('step_timeout', 'Step Timeout')" class="text-slate-300 hover:text-indigo-500 transition-colors ml-1 focus:outline-none">
+                                            <i data-lucide="help-circle" class="w-3 h-3"></i>
+                                        </button>
+                                    </div>
+                                    <input type="number" x-model.number="agentConfig.step_timeout" class="bg-white border border-slate-200 rounded-xl px-4 py-2 text-xs font-bold text-slate-700">
+                                </div>
+                                <div class="bg-slate-50 p-6 rounded-2xl border border-slate-100 flex flex-col justify-between">
+                                    <div class="flex items-center mb-3">
+                                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Max History Items</label>
+                                        <button @click="showHelp('max_history_items', 'Max History Items')" class="text-slate-300 hover:text-indigo-500 transition-colors ml-1 focus:outline-none">
+                                            <i data-lucide="help-circle" class="w-3 h-3"></i>
+                                        </button>
+                                    </div>
+                                    <input type="number" x-model.number="agentConfig.max_history_items" class="bg-white border border-slate-200 rounded-xl px-4 py-2 text-xs font-bold text-slate-700">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Action Timeouts -->
+                        <div class="space-y-6">
+                            <div class="flex items-center space-x-3 text-indigo-600">
+                                <i data-lucide="timer" class="w-4 h-4"></i>
+                                <h5 class="text-[10px] font-black uppercase tracking-[0.2em]">Browser Action Timeouts (s)</h5>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                <div class="p-4 bg-white border border-slate-100 rounded-2xl shadow-sm">
+                                    <div class="flex items-center mb-2">
+                                        <div class="text-[9px] font-black text-slate-400 uppercase">Navigation</div>
+                                        <button @click="showHelp('TIMEOUT_NavigateToUrlEvent', 'Navigation Timeout')" class="text-slate-200 hover:text-indigo-400 transition-colors ml-1 focus:outline-none">
+                                            <i data-lucide="help-circle" class="w-2.5 h-2.5"></i>
+                                        </button>
+                                    </div>
+                                    <input type="number" step="0.5" x-model.number="agentConfig.timeouts.navigate" class="w-full text-xs font-bold text-slate-700 outline-none">
+                                </div>
+                                <div class="p-4 bg-white border border-slate-100 rounded-2xl shadow-sm">
+                                    <div class="flex items-center mb-2">
+                                        <div class="text-[9px] font-black text-slate-400 uppercase">Clicking</div>
+                                        <button @click="showHelp('TIMEOUT_ClickElementEvent', 'Clicking Timeout')" class="text-slate-200 hover:text-indigo-400 transition-colors ml-1 focus:outline-none">
+                                            <i data-lucide="help-circle" class="w-2.5 h-2.5"></i>
+                                        </button>
+                                    </div>
+                                    <input type="number" step="0.5" x-model.number="agentConfig.timeouts.click" class="w-full text-xs font-bold text-slate-700 outline-none">
+                                </div>
+                                <div class="p-4 bg-white border border-slate-100 rounded-2xl shadow-sm">
+                                    <div class="flex items-center mb-2">
+                                        <div class="text-[9px] font-black text-slate-400 uppercase">Typing</div>
+                                        <button @click="showHelp('TIMEOUT_TypeTextEvent', 'Typing Timeout')" class="text-slate-200 hover:text-indigo-400 transition-colors ml-1 focus:outline-none">
+                                            <i data-lucide="help-circle" class="w-2.5 h-2.5"></i>
+                                        </button>
+                                    </div>
+                                    <input type="number" step="0.5" x-model.number="agentConfig.timeouts.type" class="w-full text-xs font-bold text-slate-700 outline-none">
+                                </div>
+                                <div class="p-4 bg-white border border-slate-100 rounded-2xl shadow-sm">
+                                    <div class="flex items-center mb-2">
+                                        <div class="text-[9px] font-black text-slate-400 uppercase">Screenshot</div>
+                                        <button @click="showHelp('TIMEOUT_ScreenshotEvent', 'Screenshot Timeout')" class="text-slate-200 hover:text-indigo-400 transition-colors ml-1 focus:outline-none">
+                                            <i data-lucide="help-circle" class="w-2.5 h-2.5"></i>
+                                        </button>
+                                    </div>
+                                    <input type="number" step="0.5" x-model.number="agentConfig.timeouts.screenshot" class="w-full text-xs font-bold text-slate-700 outline-none">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Toggles -->
+                        <div class="space-y-4">
+                            <div class="flex items-center justify-between p-6 bg-slate-50 rounded-[1.5rem] border border-slate-100">
+                                <div class="flex items-center space-x-4">
+                                    <div class="bg-white p-2.5 rounded-xl shadow-sm border border-slate-100 text-indigo-600"><i data-lucide="brain-circuit" class="w-5 h-5"></i></div>
+                                    <div>
+                                        <h5 class="text-sm font-black text-slate-800">Explicit Reasoning</h5>
+                                        <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">Show Thinking Process</p>
+                                    </div>
+                                </div>
+                                <button @click="agentConfig.use_thinking = !agentConfig.use_thinking" :class="agentConfig.use_thinking ? 'bg-indigo-600' : 'bg-slate-300'" class="w-14 h-8 rounded-full transition-all relative p-1">
+                                    <div :class="agentConfig.use_thinking ? 'translate-x-6' : 'translate-x-0'" class="w-6 h-6 bg-white rounded-full transition-transform"></div>
+                                </button>
+                            </div>
+                            <div class="flex items-center justify-between p-6 bg-slate-50 rounded-[1.5rem] border border-slate-100">
+                                <div class="flex items-center space-x-4">
+                                    <div class="bg-white p-2.5 rounded-xl shadow-sm border border-slate-100 text-amber-500"><i data-lucide="zap" class="w-5 h-5"></i></div>
+                                    <div>
+                                        <h5 class="text-sm font-black text-slate-800">Flash Mode</h5>
+                                        <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">Bypass Thinking for Speed</p>
+                                    </div>
+                                </div>
+                                <button @click="agentConfig.flash_mode = !agentConfig.flash_mode" :class="agentConfig.flash_mode ? 'bg-amber-500' : 'bg-slate-300'" class="w-14 h-8 rounded-full transition-all relative p-1">
+                                    <div :class="agentConfig.flash_mode ? 'translate-x-6' : 'translate-x-0'" class="w-6 h-6 bg-white rounded-full transition-transform"></div>
+                                </button>
+                            </div>
+                            <div class="flex items-center justify-between p-6 bg-slate-50 rounded-[1.5rem] border border-slate-100">
+                                <div class="flex items-center space-x-4">
+                                    <div class="bg-white p-2.5 rounded-xl shadow-sm border border-slate-100 text-purple-600"><i data-lucide="image" class="w-5 h-5"></i></div>
+                                    <div>
+                                        <h5 class="text-sm font-black text-slate-800">Generate Execution GIF</h5>
+                                        <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">Saves visual history</p>
+                                    </div>
+                                </div>
+                                <button @click="agentConfig.generate_gif = !agentConfig.generate_gif" :class="agentConfig.generate_gif ? 'bg-purple-600' : 'bg-slate-300'" class="w-14 h-8 rounded-full transition-all relative p-1">
+                                    <div :class="agentConfig.generate_gif ? 'translate-x-6' : 'translate-x-0'" class="w-6 h-6 bg-white rounded-full transition-transform"></div>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Browser Settings -->
+                    <div x-show="configTab === 'browser'" class="space-y-12 animate-in fade-in slide-in-from-right-4 duration-500 pb-20">
+                        <div>
+                            <h4 class="text-xl font-black text-slate-800 mb-2">Browser Configuration</h4>
+                            <p class="text-sm text-slate-500">Display, Appearance & Recording.</p>
+                        </div>
+
+                        <!-- Display & Appearance Section -->
+                        <div class="space-y-6">
+                            <div class="flex items-center space-x-3 text-indigo-600">
+                                <i data-lucide="monitor" class="w-4 h-4"></i>
+                                <h5 class="text-[10px] font-black uppercase tracking-[0.2em]">Display & Appearance</h5>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 bg-slate-50 p-8 rounded-[2rem] border border-slate-100">
+                                 <div class="md:col-span-2 flex items-center justify-between bg-white px-6 py-4 rounded-2xl shadow-sm border border-slate-100">
+                                    <div class="flex items-center space-x-3">
+                                        <i data-lucide="eye-off" class="w-4 h-4 text-slate-400"></i>
+                                        <span class="text-sm font-bold text-slate-700">Headless Mode</span>
+                                        <button @click="showHelp('headless', 'Headless Mode')" class="text-slate-300 hover:text-indigo-500 transition-colors focus:outline-none">
+                                            <i data-lucide="help-circle" class="w-3.5 h-3.5"></i>
+                                        </button>
+                                    </div>
+                                    <button @click="headless = !headless" :class="headless ? 'bg-indigo-600' : 'bg-slate-300'" class="w-14 h-8 rounded-full transition-all relative p-1">
+                                        <div :class="headless ? 'translate-x-6' : 'translate-x-0'" class="w-6 h-6 bg-white rounded-full transition-transform"></div>
+                                    </button>
+                                </div>
+                                <div class="space-y-3">
+                                    <div class="flex items-center px-1">
+                                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Window Size</label>
+                                        <button @click="showHelp('window_size', 'Window Size')" class="text-slate-300 hover:text-indigo-500 transition-colors ml-1 focus:outline-none">
+                                            <i data-lucide="help-circle" class="w-3 h-3"></i>
+                                        </button>
+                                    </div>
+                                    <div class="flex items-center space-x-2">
+                                        <input type="number" x-model.number="browserConfig.window_width" placeholder="W" class="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-xs font-bold text-slate-700 outline-none">
+                                        <span class="text-slate-300">×</span>
+                                        <input type="number" x-model.number="browserConfig.window_height" placeholder="H" class="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-xs font-bold text-slate-700 outline-none">
+                                    </div>
+                                </div>
+                                <div class="space-y-3">
+                                    <div class="flex items-center px-1">
+                                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest">AI Viewport</label>
+                                        <button @click="showHelp('viewport', 'AI Viewport')" class="text-slate-300 hover:text-indigo-500 transition-colors ml-1 focus:outline-none">
+                                            <i data-lucide="help-circle" class="w-3 h-3"></i>
+                                        </button>
+                                    </div>
+                                    <div class="flex items-center space-x-2">
+                                        <input type="number" x-model.number="browserConfig.viewport_width" placeholder="W" class="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-xs font-bold text-slate-700 outline-none">
+                                        <span class="text-slate-300">×</span>
+                                        <input type="number" x-model.number="browserConfig.viewport_height" placeholder="H" class="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-xs font-bold text-slate-700 outline-none">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Domain Filtering -->
+                        <div class="space-y-6">
+                            <div class="flex items-center space-x-3 text-indigo-600">
+                                <i data-lucide="shield-check" class="w-4 h-4"></i>
+                                <h5 class="text-[10px] font-black uppercase tracking-[0.2em]">Domain Filtering</h5>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div class="space-y-2">
+                                    <label class="text-xs font-bold text-emerald-600">Allowed Domains</label>
+                                    <textarea x-model="browserConfig.allowed_domains" placeholder="*.google.com, github.com" class="w-full h-24 bg-slate-50 border border-slate-200 rounded-2xl p-4 text-xs font-bold text-slate-700 outline-none transition-all focus:border-emerald-400 bg-emerald-50/20"></textarea>
+                                </div>
+                                <div class="space-y-2">
+                                    <label class="text-xs font-bold text-rose-600">Prohibited Domains</label>
+                                    <textarea x-model="browserConfig.prohibited_domains" placeholder="bad-site.net" class="w-full h-24 bg-slate-50 border border-slate-200 rounded-2xl p-4 text-xs font-bold text-slate-700 outline-none transition-all focus:border-rose-400 bg-rose-50/20"></textarea>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Recording & Debugging -->
+                        <div class="space-y-6">
+                            <div class="flex items-center space-x-3 text-indigo-600">
+                                <i data-lucide="video" class="w-4 h-4"></i>
+                                <h5 class="text-[10px] font-black uppercase tracking-[0.2em]">Recording & Debugging</h5>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 bg-slate-50 p-8 rounded-[2rem] border border-slate-100">
+                                <div class="md:col-span-2 space-y-2">
+                                    <div class="flex items-center">
+                                        <label class="text-xs font-bold text-slate-500">Video Directory</label>
+                                        <button @click="showHelp('record_video_dir', 'Video Directory')" class="text-slate-300 hover:text-indigo-500 transition-colors ml-1 focus:outline-none">
+                                            <i data-lucide="help-circle" class="w-3 h-3"></i>
+                                        </button>
+                                    </div>
+                                    <input type="text" x-model="browserConfig.record_video_dir" placeholder="./recordings" class="w-full bg-white border border-slate-200 rounded-xl px-4 py-2 text-xs font-bold text-slate-700 outline-none">
+                                </div>
+                                <div class="space-y-2">
+                                    <div class="flex items-center">
+                                        <label class="text-xs font-bold text-slate-500">Framerate</label>
+                                        <button @click="showHelp('record_video_framerate', 'Framerate')" class="text-slate-300 hover:text-indigo-500 transition-colors ml-1 focus:outline-none">
+                                            <i data-lucide="help-circle" class="w-3 h-3"></i>
+                                        </button>
+                                    </div>
+                                    <input type="number" x-model.number="browserConfig.record_video_framerate" class="w-full bg-white border border-slate-200 rounded-xl px-4 py-2 text-xs font-bold text-slate-700 outline-none">
+                                </div>
+                                <div class="space-y-2">
+                                    <div class="flex items-center">
+                                        <label class="text-xs font-bold text-slate-500">Video Width</label>
+                                        <button @click="showHelp('record_video_size', 'Video Size')" class="text-slate-300 hover:text-indigo-500 transition-colors ml-1 focus:outline-none">
+                                            <i data-lucide="help-circle" class="w-3 h-3"></i>
+                                        </button>
+                                    </div>
+                                    <input type="number" x-model.number="browserConfig.record_video_width" class="w-full bg-white border border-slate-200 rounded-xl px-4 py-2 text-xs font-bold text-slate-700 outline-none">
+                                </div>
+                                <div class="space-y-2">
+                                    <label class="text-xs font-bold text-slate-500">Video Height</label>
+                                    <input type="number" x-model.number="browserConfig.record_video_height" class="w-full bg-white border border-slate-200 rounded-xl px-4 py-2 text-xs font-bold text-slate-700 outline-none">
+                                </div>
+                                <div class="space-y-2">
+                                    <div class="flex items-center">
+                                        <label class="text-xs font-bold text-slate-500">HAR Mode</label>
+                                        <button @click="showHelp('record_har_mode', 'HAR Mode')" class="text-slate-300 hover:text-indigo-500 transition-colors ml-1 focus:outline-none">
+                                            <i data-lucide="help-circle" class="w-3 h-3"></i>
+                                        </button>
+                                    </div>
+                                    <select x-model="browserConfig.record_har_mode" class="w-full bg-white border border-slate-200 rounded-xl px-4 py-2 text-xs font-bold text-slate-700 outline-none">
+                                        <option value="full">Full Trace</option>
+                                        <option value="minimal">Minimal</option>
+                                    </select>
+                                </div>
+                                <div class="md:col-span-3 space-y-2">
+                                    <div class="flex items-center">
+                                        <label class="text-xs font-bold text-slate-500">Traces Directory</label>
+                                        <button @click="showHelp('traces_dir', 'Traces Directory')" class="text-slate-300 hover:text-indigo-500 transition-colors ml-1 focus:outline-none">
+                                            <i data-lucide="help-circle" class="w-3" h-3></i>
+                                        </button>
+                                    </div>
+                                    <input type="text" x-model="browserConfig.traces_dir" placeholder="./traces" class="w-full bg-white border border-slate-200 rounded-xl px-4 py-2 text-xs font-bold text-slate-700 outline-none">
+                                </div>
+                            </div>
+                        </div>
+
+                         <!-- Behavior (Persistence) -->
+                         <div class="space-y-6">
+                            <div class="flex items-center space-x-3 text-indigo-600">
+                                <i data-lucide="database" class="w-4 h-4"></i>
+                                <h5 class="text-[10px] font-black uppercase tracking-[0.2em]">Session Persistence</h5>
+                            </div>
+                            <div class="space-y-4">
+                                <div class="space-y-2">
+                                    <div class="flex items-center">
+                                        <label class="text-xs font-bold text-slate-500">User Data Directory</label>
+                                        <button @click="showHelp('user_data_dir', 'User Data Directory')" class="text-slate-200 hover:text-indigo-400 transition-colors ml-1 focus:outline-none">
+                                            <i data-lucide="help-circle" class="w-3 h-3"></i>
+                                        </button>
+                                    </div>
+                                    <input type="text" x-model="browserConfig.user_data_dir" class="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-3 text-sm font-bold text-slate-700 outline-none transition-all focus:border-indigo-500">
+                                </div>
+                                <div class="flex items-center justify-between p-5 bg-slate-50 rounded-2xl border border-slate-100">
+                                    <div class="flex items-center space-x-2">
+                                        <span class="text-sm font-bold text-slate-700">Keep Alive After Run</span>
+                                        <button @click="showHelp('keep_alive', 'Keep Alive')" class="text-slate-300 hover:text-indigo-500 transition-colors focus:outline-none">
+                                            <i data-lucide="help-circle" class="w-3.5 h-3.5"></i>
+                                        </button>
+                                    </div>
+                                    <button @click="browserConfig.keep_alive = !browserConfig.keep_alive" :class="browserConfig.keep_alive ? 'bg-indigo-600' : 'bg-slate-300'" class="w-12 h-7 rounded-full transition-all relative p-1">
+                                        <div :class="browserConfig.keep_alive ? 'translate-x-5' : 'translate-x-0'" class="w-5 h-5 bg-white rounded-full transition-transform"></div>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Floating Save Indicator (Subtle) -->
+                    <div class="mt-12 flex justify-end">
+                        <button @click="saveConfig()" class="px-8 py-3 bg-violet-600 text-white rounded-xl text-xs font-black hover:bg-violet-700 transition-all shadow-lg flex items-center space-x-3 group animate-pulse hover:animate-none">
+                            <i data-lucide="save" class="w-4 h-4 group-hover:scale-110 transition-transform"></i>
+                            <span>Save All Preferences</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- DOCUMENTATION TAB -->
+        <div x-show="activeTab === 'docs'" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 translate-y-4">
+            <div class="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm overflow-hidden flex flex-col md:flex-row min-h-[700px]">
+                <!-- Docs Sidebar -->
+                <div class="w-full md:w-80 bg-slate-50 border-r border-slate-200 p-8 space-y-3 shrink-0">
+                    <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-8 px-2">Documentation Bookshelf</h3>
+                    
+                    <template x-if="loadingDocs">
+                        <div class="space-y-4">
+                            <div class="h-10 bg-slate-200 rounded-xl animate-pulse"></div>
+                            <div class="h-10 bg-slate-200 rounded-xl animate-pulse"></div>
+                            <div class="h-10 bg-slate-200 rounded-xl animate-pulse w-3/4"></div>
+                        </div>
+                    </template>
+
+                     <template x-for="doc in docs">
+                        <button @click="selectedDoc = doc"
+                            :class="selectedDoc && selectedDoc.filename === doc.filename ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-100' : 'text-slate-600 hover:bg-slate-100'"
+                            class="w-full text-left px-5 py-4 rounded-2xl text-xs font-bold transition-all flex items-center space-x-4 group">
+                            <i data-lucide="file-text" 
+                               :class="selectedDoc && selectedDoc.filename === doc.filename ? 'text-indigo-200' : 'text-slate-400 group-hover:text-indigo-500'" 
+                               class="w-4 h-4 transition-colors"></i>
+                            <span class="truncate" x-text="doc.title"></span>
+                        </button>
+                    </template>
+                </div>
+
+                <!-- Docs Content -->
+                <div class="flex-grow p-12 overflow-y-auto custom-scrollbar-violet bg-white">
+                    <template x-if="selectedDoc">
+                        <div class="animate-in fade-in slide-in-from-right-4 duration-500">
+                            <div class="max-w-none">
+                                <div class="flex items-center justify-between mb-10 pb-6 border-b border-slate-100">
+                                    <h1 class="text-3xl font-black text-slate-800 tracking-tight" x-text="selectedDoc.title"></h1>
+                                    <div class="px-4 py-2 bg-slate-100 rounded-xl text-[10px] font-black text-slate-400 uppercase tracking-widest" x-text="selectedDoc.filename"></div>
+                                </div>
+                                <div class="docs-content transition-all duration-300" x-html="marked.parse(selectedDoc.content || '')"></div>
+                            </div>
+                        </div>
+                    </template>
+                    <template x-if="!selectedDoc && !loadingDocs">
+                        <div class="h-full flex flex-col items-center justify-center space-y-6 opacity-20">
+                            <i data-lucide="book-open" class="w-20 h-20 text-indigo-600"></i>
+                            <p class="font-black text-lg tracking-tight">Select a document to begin reading</p>
+                        </div>
+                    </template>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODERN HELP MODAL -->
+    <div x-show="helpModal.show" 
+         class="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-md animate-in fade-in duration-300"
+         style="display: none;"
+         @keydown.escape.window="helpModal.show = false"
+         @click.self="helpModal.show = false">
+        <div class="bg-white rounded-[3rem] w-full max-w-lg shadow-2xl border border-white/20 transform animate-in zoom-in-95 slide-in-from-bottom-4 duration-300 overflow-hidden shadow-indigo-200/50">
+            <div class="bg-gradient-to-br from-indigo-600 to-violet-700 p-10 text-white relative">
+                <button @click="helpModal.show = false" class="absolute top-8 right-8 text-white/60 hover:text-white transition-colors">
+                    <i data-lucide="x" class="w-6 h-6"></i>
+                </button>
+                <div class="bg-white/20 w-16 h-16 rounded-[1.5rem] flex items-center justify-center mb-8 border border-white/30">
+                    <i data-lucide="help-circle" class="w-8 h-8 text-white"></i>
+                </div>
+                <h3 class="text-2xl font-black tracking-tight mb-2" x-text="helpModal.title"></h3>
+                <p class="text-indigo-100 text-xs font-black uppercase tracking-widest opacity-80">Documentation Insight</p>
+            </div>
+            <div class="p-10">
+                <div class="bg-slate-50 rounded-[2rem] p-8 border border-slate-100 mb-8 overflow-y-auto max-h-[400px] custom-scrollbar-violet">
+                    <div class="docs-content text-sm" x-html="marked.parse(helpModal.content || '')"></div>
+                </div>
+                <button @click="helpModal.show = false" 
+                        class="w-full py-5 bg-slate-900 text-white rounded-[1.5rem] font-black text-sm uppercase tracking-[0.2em] hover:bg-slate-800 transition-all shadow-xl shadow-slate-200">
+                    Got it, thanks
+                </button>
+            </div>
+        </div>
+    </div>
+</div>

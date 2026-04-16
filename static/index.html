@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Q-ACE | Agentic QA Platform</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="js/auth.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        .sidebar-item-active {
+            background-color: #f3f4f6;
+            border-right: 4px solid #4f46e5;
+        }
+
+        [x-cloak] {
+            display: none !important;
+        }
+
+        /* Modal Overlay Animation */
+        .modal-overlay { transition: opacity 0.3s ease-out; }
+        .modal-content { transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
+    </style>
+</head>
+
+<body class="bg-gray-50 text-gray-900 min-h-screen flex font-sans overflow-x-hidden" x-data="app">
+
+    <!-- GLOBAL CONFIRMATION MODAL -->
+    <div x-show="showConfirmModal" 
+         class="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300"
+         style="display: none;"
+         @keydown.escape.window="showConfirmModal = false">
+        <div class="bg-white rounded-[2.5rem] w-full max-w-md shadow-2xl border border-white/20 transform animate-in zoom-in-95 slide-in-from-bottom-4 duration-300 overflow-hidden text-slate-800">
+            <div class="p-8 pb-0 flex items-center space-x-4">
+                <div class="bg-rose-50 p-3 rounded-2xl border border-rose-100">
+                    <i data-lucide="alert-triangle" class="w-6 h-6 text-rose-500"></i>
+                </div>
+                <h3 class="text-xl font-black tracking-tight" x-text="confirmTitle"></h3>
+            </div>
+            <div class="p-8">
+                <p class="text-slate-500 font-medium leading-relaxed" x-text="confirmMessage"></p>
+                <div class="flex items-center space-x-3 mt-10">
+                    <button @click="showConfirmModal = false" 
+                            class="flex-1 px-6 py-4 rounded-2xl border border-slate-200 text-sm font-black text-slate-700 hover:bg-slate-50 transition-all uppercase tracking-widest">
+                        Cancel
+                    </button>
+                    <button @click="executeConfirm()" 
+                            class="flex-1 px-6 py-4 rounded-2xl bg-rose-500 text-white text-sm font-black hover:bg-rose-600 transition-all shadow-lg shadow-rose-200 uppercase tracking-widest">
+                        Confirm
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Sidebar -->
+    <aside :style="{ width: sidebarWidth + 'px' }"
+        class="bg-white border-r border-gray-200 flex flex-col z-20 shadow-sm sticky top-0 h-screen relative flex-shrink-0">
+        <!-- Resize Handle (Added) -->
+        <div @mousedown="startResize($event)"
+            class="absolute top-0 -right-1.5 w-3 h-full cursor-col-resize hover:bg-indigo-400/20 active:bg-indigo-400/40 transition-colors z-30 group">
+            <div
+                class="absolute top-1/2 left-1/2 -translate-y-1/2 -translate-x-1/2 w-0.5 h-12 bg-slate-200 group-hover:bg-indigo-400 rounded-full opacity-0 group-hover:opacity-100 transition-all">
+            </div>
+        </div>
+        <div class="p-6 border-b border-gray-100 flex items-center space-x-3">
+            <div class="bg-indigo-600 text-white p-2 rounded-xl shadow-lg shadow-indigo-100">
+                <i data-lucide="shield-check" class="w-6 h-6"></i>
+            </div>
+            <h1 class="text-xl font-bold tracking-tight text-slate-800">Q-ACE</h1>
+        </div>
+
+        <nav class="flex-grow p-4 space-y-2 overflow-y-auto" id="sidebar-nav">
+            <button @click="switchTool('chat')" :class="currentToolId === 'chat' ? 'sidebar-item-active' : ''"
+                class="w-full flex items-center space-x-3 px-4 py-3 text-sm font-medium text-gray-700 rounded-lg hover:bg-gray-50 transition-all">
+                <i data-lucide="message-square" class="w-5 h-5"></i>
+                <span>Agent Chat</span>
+            </button>
+
+            <div class="pt-6 pb-2 px-4">
+                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">QA Tools</span>
+            </div>
+            <template x-for="tool in availableTools" :key="tool.id">
+                <button @click="switchTool(tool.id)" :class="currentToolId === tool.id ? 'sidebar-item-active' : ''"
+                    class="w-full flex items-center space-x-3 px-4 py-3 text-sm font-medium text-gray-700 rounded-lg hover:bg-gray-50 transition-all">
+                    <template x-if="tool.id === 'github'">
+                        <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path></svg>
+                    </template>
+                    <template x-if="tool.id === 'jira'">
+                        <svg class="w-5 h-5 text-[#0052CC]" viewBox="0 0 24 24" fill="currentColor"><path d="M11.531 10.158H.469l5.531 5.531h11.062M11.531 0H.469l11.062 11.062V0M23.531 10.158H12.469l5.531 5.531H29.062M23.531 0H12.469l11.062 11.062V0" transform="translate(-0.469)"/></svg>
+                    </template>
+                    <template x-if="tool.id !== 'github' && tool.id !== 'jira'">
+                        <i :data-lucide="tool.icon || 'box'" class="w-5 h-5"></i>
+                    </template>
+                    <span x-text="tool.name"></span>
+                </button>
+            </template>
+
+            <!-- Admin Sections -->
+            <div x-show="user?.role === 'admin'" x-cloak>
+                <div class="pt-6 pb-2 px-4">
+                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Management</span>
+                </div>
+                <button @click="switchTool('admin_dashboard')"
+                    :class="currentToolId === 'admin_dashboard' ? 'sidebar-item-active' : ''"
+                    class="w-full flex items-center space-x-3 px-4 py-3 text-sm font-medium text-gray-700 rounded-lg hover:bg-gray-50 transition-all">
+                    <i data-lucide="bar-chart-3" class="w-5 h-5"></i>
+                    <span>Admin Dashboard</span>
+                </button>
+                <button @click="switchTool('admin_management')"
+                    :class="currentToolId === 'admin_management' ? 'sidebar-item-active' : ''"
+                    class="w-full flex items-center space-x-3 px-4 py-3 text-sm font-medium text-gray-700 rounded-lg hover:bg-gray-50 transition-all">
+                    <i data-lucide="users" class="w-5 h-5"></i>
+                    <span>User Management</span>
+                </button>
+            </div>
+        </nav>
+
+        <div class="p-4 border-t border-gray-100 space-y-2">
+            <button @click="toggleConfig()"
+                class="w-full flex items-center space-x-3 px-4 py-3 text-sm font-medium text-slate-600 rounded-lg hover:bg-slate-50 transition-all">
+                <i data-lucide="settings" class="w-5 h-5"></i>
+                <span>Global Settings</span>
+            </button>
+            <button @click="logout()"
+                class="w-full flex items-center space-x-3 px-4 py-3 text-sm font-medium text-rose-600 rounded-lg hover:bg-rose-50 transition-all">
+                <i data-lucide="log-out" class="w-5 h-5"></i>
+                <span>Logout</span>
+            </button>
+        </div>
+    </aside>
+
+    <!-- Main Content Shell -->
+    <div class="flex-grow flex flex-col relative min-w-0">
+        <!-- Header -->
+        <header
+            class="bg-white/80 backdrop-blur-md border-b border-gray-200 py-4 px-8 flex justify-between items-center z-30 sticky top-0 shadow-sm">
+            <div class="flex items-center space-x-4">
+                <h2 class="text-lg font-bold text-slate-800" x-text="viewTitle">Agent Chat</h2>
+            </div>
+            <div class="flex items-center space-x-4">
+                <div
+                    class="flex items-center space-x-2 px-4 py-1.5 bg-indigo-50 text-indigo-700 rounded-full text-xs font-bold border border-indigo-100 shadow-sm">
+                    <span class="opacity-50 uppercase tracking-wider" x-text="globalConfig.provider"></span>
+                    <span class="text-indigo-300">•</span>
+                    <span x-text="globalConfig.model"></span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Dynamic Content Area -->
+        <main class="flex-grow p-8 bg-slate-50/50">
+            <!-- Dynamic Component Injection -->
+            <div x-html="componentHtml"></div>
+        </main>
+
+        <!-- Global Config Overlay -->
+        <div x-show="showConfig" x-cloak
+            class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm flex justify-end z-30">
+            <div
+                class="w-[650px] bg-white shadow-2xl h-full p-10 border-l border-slate-200 flex flex-col animate-in slide-in-from-right duration-500 overflow-y-auto">
+                <div class="flex justify-between items-center mb-10">
+                    <div class="flex items-center space-x-3">
+                        <div class="bg-slate-100 p-2 rounded-xl">
+                            <i data-lucide="cpu" class="w-6 h-6 text-slate-600"></i>
+                        </div>
+                        <h3 class="text-2xl font-bold text-slate-800">Model Config</h3>
+                    </div>
+                    <button @click="toggleConfig" class="text-slate-400 hover:text-slate-600 transition-colors">
+                        <i data-lucide="x" class="w-8 h-8"></i>
+                    </button>
+                </div>
+
+                <form @submit.prevent="saveConfig" class="space-y-8 flex-grow">
+                    <div class="space-y-6">
+                        <div class="space-y-3">
+                            <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">LLM
+                                Provider</label>
+                            <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                                <button type="button" @click="configForm.provider = 'gemini'"
+                                    :class="configForm.provider === 'gemini' ? 'ring-2 ring-indigo-500 border-indigo-500 bg-indigo-50 text-indigo-700' : 'border-slate-200 hover:border-indigo-300 hover:shadow-md hover:bg-slate-50'"
+                                    class="px-4 py-8 border rounded-2xl flex flex-col items-center space-y-3 transition-all text-slate-600">
+                                    <i data-lucide="sparkles"
+                                        class="w-7 h-7 group-hover:text-indigo-500 transition-colors"></i>
+                                    <span class="font-bold text-sm">Gemini SDK</span>
+                                </button>
+                                <button type="button" @click="configForm.provider = 'ollama'"
+                                    :class="configForm.provider === 'ollama' ? 'ring-2 ring-indigo-500 border-indigo-500 bg-indigo-50 text-indigo-700' : 'border-slate-200 hover:border-indigo-300 hover:shadow-md hover:bg-slate-50'"
+                                    class="px-4 py-8 border rounded-2xl flex flex-col items-center space-y-3 transition-all text-slate-600">
+                                    <i data-lucide="server"
+                                        class="w-7 h-7 group-hover:text-indigo-500 transition-colors"></i>
+                                    <span class="font-bold text-sm">Ollama local</span>
+                                </button>
+                                <button type="button" @click="configForm.provider = 'openai'"
+                                    :class="configForm.provider === 'openai' ? 'ring-2 ring-indigo-500 border-indigo-500 bg-indigo-50 text-indigo-700' : 'border-slate-200 hover:border-indigo-300 hover:shadow-md hover:bg-slate-50'"
+                                    class="px-4 py-8 border rounded-2xl flex flex-col items-center space-y-3 transition-all text-slate-600">
+                                    <i data-lucide="cpu"
+                                        class="w-7 h-7 group-hover:text-indigo-500 transition-colors"></i>
+                                    <span class="font-bold text-sm">OpenAI</span>
+                                </button>
+                                <button type="button" @click="configForm.provider = 'anthropic'"
+                                    :class="configForm.provider === 'anthropic' ? 'ring-2 ring-indigo-500 border-indigo-500 bg-indigo-50 text-indigo-700' : 'border-slate-200 hover:border-indigo-300 hover:shadow-md hover:bg-slate-50'"
+                                    class="px-4 py-8 border rounded-2xl flex flex-col items-center space-y-3 transition-all text-slate-600">
+                                    <i data-lucide="brain-circuit"
+                                        class="w-7 h-7 group-hover:text-indigo-500 transition-colors"></i>
+                                    <span class="font-bold text-sm">Anthropic</span>
+                                </button>
+                                <button type="button" @click="configForm.provider = 'azure'"
+                                    :class="configForm.provider === 'azure' ? 'ring-2 ring-indigo-500 border-indigo-500 bg-indigo-50 text-indigo-700' : 'border-slate-200 hover:border-indigo-300 hover:shadow-md hover:bg-slate-50'"
+                                    class="px-4 py-8 border rounded-2xl flex flex-col items-center space-y-3 transition-all text-slate-600">
+                                    <i data-lucide="cloud"
+                                        class="w-7 h-7 group-hover:text-indigo-500 transition-colors"></i>
+                                    <span class="font-bold text-sm">Azure</span>
+                                </button>
+                                <button type="button" @click="configForm.provider = 'deepseek'"
+                                    :class="configForm.provider === 'deepseek' ? 'ring-2 ring-indigo-500 border-indigo-500 bg-indigo-50 text-indigo-700' : 'border-slate-200 hover:border-indigo-300 hover:shadow-md hover:bg-slate-50'"
+                                    class="px-4 py-8 border rounded-2xl flex flex-col items-center space-y-3 transition-all text-slate-600">
+                                    <i data-lucide="search"
+                                        class="w-7 h-7 group-hover:text-indigo-500 transition-colors"></i>
+                                    <span class="font-bold text-sm">DeepSeek</span>
+                                </button>
+                                <button type="button" @click="configForm.provider = 'bedrock'"
+                                    :class="configForm.provider === 'bedrock' ? 'ring-2 ring-indigo-500 border-indigo-500 bg-indigo-50 text-indigo-700' : 'border-slate-200 hover:border-indigo-300 hover:shadow-md hover:bg-slate-50'"
+                                    class="px-4 py-8 border rounded-2xl flex flex-col items-center space-y-3 transition-all text-slate-600">
+                                    <i data-lucide="layers"
+                                        class="w-7 h-7 group-hover:text-indigo-500 transition-colors"></i>
+                                    <span class="font-bold text-sm">Bedrock</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div x-show="configForm.provider === 'gemini'" x-transition class="space-y-4">
+                            <label
+                                class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">Gemini
+                                Model</label>
+                            <select x-model="configForm.gemini_model"
+                                class="w-full border border-slate-200 rounded-xl px-5 py-3.5 text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all shadow-sm bg-white cursor-pointer">
+                                <option value="gemini-2.5-flash-lite">Gemini 2.5 Flash Lite</option>
+                                <option value="gemini-2.5-flash">Gemini 2.5 Flash</option>
+                                <option value="gemini-2.5-pro">Gemini 2.5 Pro</option>
+                                <option value="gemini-3.0-flash-preview">Gemini 3.0 Flash Preview</option>
+                                <option value="gemini-3.1-flash-lite-preview">Gemini 3.1 Flash Lite Preview</option>
+                            </select>
+                            <div class="space-y-2">
+                                <label
+                                    class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">Gemini
+                                    API Key</label>
+                                <div class="relative">
+                                    <input :type="configForm.showSecrets ? 'text' : 'password'" x-model="configForm.api_key"
+                                        class="w-full border border-slate-200 rounded-xl px-5 py-3.5 pr-12 text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all shadow-sm"
+                                        placeholder="Paste your key here">
+                                    <button type="button" @click="configForm.showSecrets = !configForm.showSecrets" 
+                                            class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors">
+                                        <i :data-lucide="configForm.showSecrets ? 'eye-off' : 'eye'" class="w-5 h-5"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div x-show="configForm.provider === 'ollama'" x-transition class="space-y-4">
+                            <div class="space-y-2">
+                                <label
+                                    class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">Ollama
+                                    Model</label>
+                                <select x-model="configForm.ollama_model"
+                                    class="w-full border border-slate-200 rounded-xl px-5 py-3.5 text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all shadow-sm bg-white cursor-pointer">
+                                    <option value="gemma3:1b">Gemma3:1b</option>
+                                    <option value="gemma4:e2b">Gemma4:e2b</option>
+                                    <option value="gemma3n:e2b">Gemma3n:e2b</option>
+                                    <option value="deepseek-r1:1.5b">DeepSeekR1:1.5b</option>
+                                    <option value="llama3.2">Llama 3.2</option>
+                                    <option value="llama3">Llama 3 (Legacy)</option>
+                                </select>
+                            </div>
+                            <div class="space-y-2">
+                                <label
+                                    class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">Ollama
+                                    Server URL</label>
+                                <input type="text" x-model="configForm.base_url"
+                                    class="w-full border border-slate-200 rounded-xl px-5 py-3.5 text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all shadow-sm"
+                                    placeholder="http://localhost:11434">
+                            </div>
+
+                            <!-- Ollama Server Management -->
+                            <div class="p-5 bg-slate-50 rounded-2xl border border-slate-100 space-y-4">
+                                <div class="flex justify-between items-center">
+                                    <div>
+                                        <h4 class="text-xs font-bold text-slate-700">Ollama local server</h4>
+                                        <div class="flex items-center space-x-2 mt-1">
+                                            <div :class="ollamaRunning ? 'bg-emerald-500' : 'bg-slate-300'"
+                                                class="w-2 h-2 rounded-full animate-pulse"></div>
+                                            <span class="text-[10px] font-bold uppercase tracking-wider"
+                                                :class="ollamaRunning ? 'text-emerald-600' : 'text-slate-400'"
+                                                x-text="ollamaRunning ? 'Online' : 'Offline'"></span>
+                                        </div>
+                                    </div>
+                                    <button type="button" @click="toggleOllama" :disabled="ollamaLoading"
+                                        class="px-4 py-2 rounded-lg text-xs font-bold transition-all border shadow-sm flex items-center space-x-2"
+                                        :class="ollamaRunning ? 'bg-white text-red-600 border-red-100 hover:bg-red-50' : 'bg-slate-800 text-white border-slate-900 hover:bg-slate-900 shadow-slate-200'">
+                                        <template x-if="!ollamaLoading">
+                                            <span class="flex items-center space-x-2">
+                                                <i :data-lucide="ollamaRunning ? 'power-off' : 'play'"
+                                                    class="w-3 h-3"></i>
+                                                <span x-text="ollamaRunning ? 'Shut Down' : 'Start Server'"></span>
+                                            </span>
+                                        </template>
+                                        <template x-if="ollamaLoading">
+                                            <svg class="animate-spin h-3 w-3 text-current" viewBox="0 0 24 24">
+                                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor"
+                                                    stroke-width="4"></circle>
+                                                <path class="opacity-75" fill="currentColor"
+                                                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                                                </path>
+                                            </svg>
+                                        </template>
+                                    </button>
+                                </div>
+                                <p class="text-[10px] text-slate-500 leading-relaxed">Toggle the local background
+                                    process for running models offline.</p>
+                            </div>
+                        </div>
+
+                        <!-- Provider Specific Details -->
+                        <!-- OpenAI -->
+                        <div x-show="configForm.provider === 'openai'" x-transition class="space-y-4">
+                            <div class="space-y-2">
+                                <label
+                                    class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">OpenAI
+                                    API Key</label>
+                                <div class="relative">
+                                    <input :type="configForm.showSecrets ? 'text' : 'password'" x-model="configForm.json_config.openai.apiKey"
+                                        placeholder="OpenAI API Key"
+                                        class="w-full bg-white border border-slate-200 rounded-xl px-5 py-3.5 pr-12 text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all shadow-sm">
+                                    <button type="button" @click="configForm.showSecrets = !configForm.showSecrets" 
+                                            class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors">
+                                        <i :data-lucide="configForm.showSecrets ? 'eye-off' : 'eye'" class="w-5 h-5"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="space-y-2">
+                                <label
+                                    class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">Model</label>
+                                <input type="text" x-model="configForm.json_config.openai.model"
+                                    placeholder="Model (e.g. gpt-4o, o3)"
+                                    class="w-full bg-white border border-slate-200 rounded-xl px-5 py-3.5 text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all shadow-sm">
+                            </div>
+                        </div>
+
+                        <!-- Anthropic -->
+                        <div x-show="configForm.provider === 'anthropic'" x-transition class="space-y-4">
+                            <div class="space-y-2">
+                                <label
+                                    class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">Anthropic
+                                    API Key</label>
+                                <div class="relative">
+                                    <input :type="configForm.showSecrets ? 'text' : 'password'" x-model="configForm.json_config.anthropic.apiKey"
+                                        placeholder="Anthropic API Key"
+                                        class="w-full bg-white border border-slate-200 rounded-xl px-5 py-3.5 pr-12 text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all shadow-sm">
+                                    <button type="button" @click="configForm.showSecrets = !configForm.showSecrets" 
+                                            class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors">
+                                        <i :data-lucide="configForm.showSecrets ? 'eye-off' : 'eye'" class="w-5 h-5"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="space-y-2">
+                                <label
+                                    class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">Model</label>
+                                <input type="text" x-model="configForm.json_config.anthropic.model"
+                                    placeholder="Model (e.g. claude-3-5-sonnet)"
+                                    class="w-full bg-white border border-slate-200 rounded-xl px-5 py-3.5 text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all shadow-sm">
+                            </div>
+                        </div>
+
+                        <!-- Azure -->
+                        <div x-show="configForm.provider === 'azure'" x-transition class="space-y-4">
+                            <div class="space-y-2">
+                                <label
+                                    class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">Azure
+                                    Endpoint</label>
+                                <input type="text" x-model="configForm.json_config.azure.endpoint"
+                                    placeholder="Azure Endpoint"
+                                    class="w-full bg-white border border-slate-200 rounded-xl px-5 py-3.5 text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all shadow-sm">
+                            </div>
+                            <div class="space-y-2">
+                                <label
+                                    class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">Azure
+                                    API Key</label>
+                                <div class="relative">
+                                    <input :type="configForm.showSecrets ? 'text' : 'password'" x-model="configForm.json_config.azure.apiKey"
+                                        placeholder="Azure API Key"
+                                        class="w-full bg-white border border-slate-200 rounded-xl px-5 py-3.5 pr-12 text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all shadow-sm">
+                                    <button type="button" @click="configForm.showSecrets = !configForm.showSecrets" 
+                                            class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors">
+                                        <i :data-lucide="configForm.showSecrets ? 'eye-off' : 'eye'" class="w-5 h-5"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="space-y-2">
+                                <label
+                                    class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">Deployment
+                                    Name</label>
+                                <input type="text" x-model="configForm.json_config.azure.model"
+                                    placeholder="Deployment Name"
+                                    class="w-full bg-white border border-slate-200 rounded-xl px-5 py-3.5 text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all shadow-sm">
+                            </div>
+                        </div>
+
+                        <!-- DeepSeek -->
+                        <div x-show="configForm.provider === 'deepseek'" x-transition class="space-y-4">
+                            <div class="space-y-2">
+                                <label
+                                    class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">DeepSeek
+                                    API Key</label>
+                                <div class="relative">
+                                    <input :type="configForm.showSecrets ? 'text' : 'password'" x-model="configForm.json_config.deepseek.apiKey"
+                                        placeholder="DeepSeek API Key"
+                                        class="w-full bg-white border border-slate-200 rounded-xl px-5 py-3.5 pr-12 text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all shadow-sm">
+                                    <button type="button" @click="configForm.showSecrets = !configForm.showSecrets" 
+                                            class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors">
+                                        <i :data-lucide="configForm.showSecrets ? 'eye-off' : 'eye'" class="w-5 h-5"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="space-y-2">
+                                <label
+                                    class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">Model</label>
+                                <input type="text" x-model="configForm.json_config.deepseek.model"
+                                    placeholder="Model (e.g. deepseek-chat)"
+                                    class="w-full bg-white border border-slate-200 rounded-xl px-5 py-3.5 text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all shadow-sm">
+                            </div>
+                        </div>
+
+                        <!-- Bedrock -->
+                        <div x-show="configForm.provider === 'bedrock'" x-transition class="space-y-4">
+                            <div class="grid grid-cols-2 gap-4">
+                                <div class="space-y-2">
+                                    <label
+                                        class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">Access
+                                        Key</label>
+                                    <input type="text" x-model="configForm.json_config.bedrock.accessKey"
+                                        placeholder="Access Key"
+                                        class="w-full bg-white border border-slate-200 rounded-xl px-5 py-3.5 text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all shadow-sm">
+                                </div>
+                                <div class="space-y-2">
+                                    <label
+                                        class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">Secret
+                                        Key</label>
+                                    <div class="relative">
+                                        <input :type="configForm.showSecrets ? 'text' : 'password'" x-model="configForm.json_config.bedrock.secretKey"
+                                            placeholder="Secret Key"
+                                            class="w-full bg-white border border-slate-200 rounded-xl px-5 py-3.5 pr-12 text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all shadow-sm">
+                                        <button type="button" @click="configForm.showSecrets = !configForm.showSecrets" 
+                                                class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors">
+                                            <i :data-lucide="configForm.showSecrets ? 'eye-off' : 'eye'" class="w-5 h-5"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="space-y-2">
+                                <label
+                                    class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">AWS
+                                    Region</label>
+                                <input type="text" x-model="configForm.json_config.bedrock.region"
+                                    placeholder="AWS Region"
+                                    class="w-full bg-white border border-slate-200 rounded-xl px-5 py-3.5 text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all shadow-sm">
+                            </div>
+                            <div class="space-y-2">
+                                <label
+                                    class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">Model
+                                    ID</label>
+                                <input type="text" x-model="configForm.json_config.bedrock.model" placeholder="Model ID"
+                                    class="w-full bg-white border border-slate-200 rounded-xl px-5 py-3.5 text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all shadow-sm">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="pt-10 space-y-4">
+                        <button type="submit"
+                            class="w-full bg-slate-800 text-white py-4 rounded-2xl font-bold hover:bg-slate-900 transition-all shadow-lg active:scale-[0.98]">
+                            Apply & Save Settings
+                        </button>
+                        <p class="text-center text-[10px] text-slate-400 font-medium">Settings are kept in browser
+                            storage.</p>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/app.js"></script>
+    <script src="js/components/sqlite_tool.js"></script>
+    <script src="js/components/api_tool.js"></script>
+    <script src="js/components/spec_analyzer_tool.js"></script>
+    <script src="js/components/admin_dashboard.js"></script>
+    <script src="js/components/admin_management.js"></script>
+    <script src="js/components/browser_agent_tool.js"></script>
+    <script src="js/components/mobile_agent_tool.js"></script>
+</body>
+
+</html>
